@@ -51,7 +51,6 @@ class DataSet(Dataset):
         y = self.Y[idx]
         #if self.transform:
         #    x = 100*x + 3 
-        assert y.dtype == np.int32
         return x, y
 
 
@@ -154,7 +153,7 @@ Out[8]:
 
 
 
-net = NN(PC, 100, 4)
+net = NN(PC, 100, 1)
 
 import pyro
 from pyro.distributions import Normal, Categorical
@@ -176,10 +175,18 @@ def model(x_data, y_data):
     lifted_module = pyro.random_module("module", net, priors)
     # sample a regressor (which also samples w and b)
     lifted_reg_model = lifted_module()
+    """
     
     lhat = log_softmax(lifted_reg_model(x_data))
     
     pyro.sample("obs", Categorical(logits=lhat), obs=y_data)
+    """
+    # run the regressor forward conditioned on inputs
+    prediction_mean = lifted_reg_model(x_data).squeeze(-1)
+    pyro.sample("obs", Normal(prediction_mean, 1),
+                obs=y_data)
+    return prediction_mean
+
 
 softplus = torch.nn.Softplus()
 
@@ -242,5 +249,24 @@ for j in range(num_iterations):
     
     print("Epoch ", j, " Loss ", total_epoch_loss_train)
 
+num_samples = 10
+def predict(x):
+    sampled_models = [guide(None, None) for _ in range(num_samples)]
+    yhats = [model(x).data for model in sampled_models]
+    mean = torch.mean(torch.stack(yhats), 0)
+    return mean.numpy()
+
+print('Prediction when network is forced to predict')
+correct = 0
+total = 0
+for j, data in enumerate(test_generator):
+    images, labels = data
+    predicted = predict(images.type(torch.FloatTensor))
+    total += labels.size(0)
+    correct += (predicted == labels.flatten().numpy()).sum().item()
+print("accuracy: %d %%" % (100 * correct / total))
+
+classes = ('0', '1', '2', '3',
+           '4', '5', '6', '7', '8', '9')
 
 

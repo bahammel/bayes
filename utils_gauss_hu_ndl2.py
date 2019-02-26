@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 
 def noise(X):
-    pct_noise = 10.    #10% noise
+    pct_noise = 0.1    #10% noise
     print("Noise multiplier (%) is:", pct_noise)
 
     nX = X * (1 + pct_noise/100.*(np.random.random_sample((X[:,1].size,X[1,:].size)) - 0.5))
@@ -61,7 +61,7 @@ def gauss_data_bay():
         I = 0.0; mu = 0.0; std = 0.0; amp = 0.0; mc = 0.0; mult = 1.0;
         #mu = np.random.choice(np.linspace(4, 8, 2))
         mu = 5.5
-        std = np.random.choice(np.linspace(1, 3, 2))
+        std = np.random.choice(np.linspace(2, 3, 2))
         #std = 0.5
 #        amp = np.random.choice(np.linspace(0.1, 1.0,20))
         amp = 0.5
@@ -83,4 +83,4 @@ def gauss_data_bay():
     plt.title('data')
     plt.plot(hu,np.transpose(X[::50]))
 
-    return hu, X, np.asarray(Y, dtype=np.int32)
+    return hu, X, np.asarray(Y, dtype=np.float32)
