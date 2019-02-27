@@ -21,6 +21,9 @@ from scipy.misc import imread
 # %matplotlib inline
 TENSORBOARD_DIR = '/usr/WS1/hammel1/proj/tensorboard/'
 CHECKPOINT_DIR = '/usr/WS1/hammel1/proj/checkpoints/'
+torch.set_default_tensor_type('torch.cuda.FloatTensor')
+USE_GPU = torch.cuda.is_available()
+device = torch.device('cuda' if USE_GPU else 'cpu')
 
 class NN(nn.Module):
     
@@ -52,11 +55,9 @@ class DataSet(Dataset):
         return len(self.X)
 
     def __getitem__(self, idx):
-        x = self.X[idx]
-        y = self.Y[idx]
-        #if self.transform:
-        #    x = 100*x + 3 
-        return x, y
+        x = self.X[idx].astype(np.float32)
+        y = self.Y[idx].astype(np.float32)
+        return torch.tensor(x, device=device), torch.tensor(y, device=device)
 
 
 hu, PC, X_pca, X, Y = pca_data_hu.pca_data()
@@ -159,6 +160,8 @@ Out[8]:
 
 
 net = NN(PC, 100, 1)
+if USE_GPU:
+    net.cuda()
 
 import pyro
 from pyro.distributions import Normal, Categorical
@@ -227,7 +230,6 @@ def guide(x_data, y_data):
     priors = {'fc1.weight': fc1w_prior, 'fc1.bias': fc1b_prior, 'out.weight': outw_prior, 'out.bias': outb_prior}
     
     lifted_module = pyro.random_module("module", net, priors)
-    
     return lifted_module()
 
 
@@ -265,7 +267,7 @@ for j in range(num_iterations):
     loss = 0
     for batch_id, data in enumerate(training_generator):
         # calculate the loss and take a gradient step
-        loss += svi.step(data[0].type(torch.FloatTensor), data[1][:,-1])
+        loss += svi.step(data[0], data[1][:,-1])
     normalizer_train = len(training_generator.dataset)
     total_epoch_loss_train = loss / normalizer_train
     
@@ -286,7 +288,7 @@ correct = 0
 total = 0
 for j, data in enumerate(test_generator):
     images, labels = data
-    predicted = predict(images.type(torch.FloatTensor))
+    predicted = predict(images)
     total += labels.size(0)
     correct += (predicted == labels.flatten().numpy()).sum().item()
 print("accuracy: %d %%" % (100 * correct / total))
