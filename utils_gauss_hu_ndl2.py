@@ -52,22 +52,22 @@ def gauss_data_2():
 
 def gauss_data_bay():
     hu = np.linspace(1, 10, 200) 
-    num_of_cases = 1000
+    num_of_cases = 10000
 
     X = []
     Y = []
     for cases in range(num_of_cases):
         #Create num_of_cases different fake spectra, each made from a set of (mu, std, amp)
         I = 0.0; mu = 0.0; std = 0.0; amp = 0.0; mc = 0.0; mult = 1.0;
-        #mu = np.random.choice(np.linspace(4, 8, 2))
-        mu = 5.5
-        std = np.random.choice(np.linspace(2, 3, 2))
-        #std = 0.5
+        mu = np.random.choice(np.linspace(4, 8, 2))
+        #mu = 5.5
+        #std = np.random.choice(np.linspace(2, 3, 2))
+        std = 0.5
 #        amp = np.random.choice(np.linspace(0.1, 1.0,20))
         amp = 0.5
         #Add up num_of_gauss different Gaussians, where mu and std are scaled by mult, to make fake spectrum
         I = amp * (1.0) / (std*np.sqrt(2.*np.pi)) * np.exp(-(hu - mu)**2./(2.* std**2.))
-        Y.append([std])
+        Y.append([mu])
         X.append(I)
     Y = np.array(Y)
     print(Y.shape)

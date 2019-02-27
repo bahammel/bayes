@@ -6,6 +6,9 @@ import torchvision
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 
+from logger import Logger
+from datetime import datetime
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import colors
@@ -16,6 +19,8 @@ from torch.utils.data.dataset import Dataset
 from scipy.misc import imread
 
 # %matplotlib inline
+TENSORBOARD_DIR = '/usr/WS1/hammel1/proj/tensorboard/'
+CHECKPOINT_DIR = '/usr/WS1/hammel1/proj/checkpoints/'
 
 class NN(nn.Module):
     
@@ -159,6 +164,9 @@ import pyro
 from pyro.distributions import Normal, Categorical
 from pyro.infer import SVI, Trace_ELBO
 from pyro.optim import Adam
+from pyro.infer import EmpiricalMarginal, SVI, Trace_ELBO, TracePredictive
+from pyro.infer.mcmc import MCMC, NUTS
+import pyro.optim as optim
 
 log_softmax = nn.LogSoftmax(dim=1)
 
@@ -222,9 +230,18 @@ def guide(x_data, y_data):
     
     return lifted_module()
 
-optim = Adam({"lr": 0.01})
-svi = SVI(model, guide, optim, loss=Trace_ELBO())
 
+
+# Reducing Learning Rate. ReduceOnPlateau is not supported.
+#This code works but loss doesn't get lower than constant LR. Perhaps gamma should be closer to 1.0?
+AdamArgs = { 'lr': 1e-2 }
+optimizer = torch.optim.Adam
+scheduler = pyro.optim.ExponentialLR({'optimizer': optimizer, 'optim_args': AdamArgs, 'gamma': 0.99995 })
+svi = SVI(model, guide, scheduler, loss=Trace_ELBO())
+"""
+optimizer = Adam({"lr": 0.01})
+svi = SVI(model, guide, optimizer, loss=Trace_ELBO())
+"""
 
 """
 num_iterations = 1
@@ -235,7 +252,12 @@ for j in range(num_iterations):
 """
 
 
-num_iterations = 500
+experiment_id = datetime.now().isoformat()
+print('Logging experiment as: ', experiment_id)
+
+logger = Logger(os.path.join(TENSORBOARD_DIR, experiment_id))
+
+num_iterations = 1000
 loss = 0
 
 for j in range(num_iterations):
@@ -249,6 +271,8 @@ for j in range(num_iterations):
     
     print("Epoch ", j, " Loss ", total_epoch_loss_train)
 
+
+"""
 num_samples = 10
 def predict(x):
     sampled_models = [guide(None, None) for _ in range(num_samples)]
@@ -256,6 +280,7 @@ def predict(x):
     mean = torch.mean(torch.stack(yhats), 0)
     return mean.numpy()
 
+"""
 print('Prediction when network is forced to predict')
 correct = 0
 total = 0
@@ -266,7 +291,28 @@ for j, data in enumerate(test_generator):
     correct += (predicted == labels.flatten().numpy()).sum().item()
 print("accuracy: %d %%" % (100 * correct / total))
 
-classes = ('0', '1', '2', '3',
-           '4', '5', '6', '7', '8', '9')
+classes = ('4', '8')
+"""
+
+for name, value in pyro.get_param_store().items():
+    print(name, pyro.param(name))
 
 
+get_marginal = lambda traces, sites:EmpiricalMarginal(traces, sites)._get_samples_and_weights()[0].detach().cpu().numpy()
+
+def summary(traces, sites):
+    marginal = get_marginal(traces, sites)
+    site_stats = {}
+    for i in range(marginal.shape[1]):
+        site_name = sites[i]
+        marginal_site = pd.DataFrame(marginal[:, i]).transpose()
+        describe = partial(pd.Series.describe, percentiles=[.05, 0.25, 0.5, 0.75, 0.95])
+        site_stats[site_name] = marginal_site.apply(describe, axis=1) \
+            [["mean", "std", "5%", "25%", "50%", "75%", "95%"]]
+    return site_stats
+
+def wrapped_model(x_data, y_data):
+    pyro.sample("prediction", Delta(model(x_data, y_data)))
+
+posterior = svi.run(x_data, y_data)
+"""
