@@ -338,9 +338,10 @@ post_pred = trace_pred.run(data[0], None)
 post_summary = summary(post_pred, sites= ['prediction', 'obs'])
 mu = post_summary["prediction"]
 y = post_summary["obs"]
+y.insert(0, 'true', data[1].cpu().numpy())
 
 print("sample y data:")
-print(y[1:10])
+print(y.head(10))
 
 print("mu_mean")
 print(mu["mean"])
