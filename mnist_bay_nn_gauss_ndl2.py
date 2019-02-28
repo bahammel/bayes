@@ -21,9 +21,16 @@ from scipy.misc import imread
 # %matplotlib inline
 TENSORBOARD_DIR = '/usr/WS1/hammel1/proj/tensorboard/'
 CHECKPOINT_DIR = '/usr/WS1/hammel1/proj/checkpoints/'
+
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
 USE_GPU = torch.cuda.is_available()
 device = torch.device('cuda' if USE_GPU else 'cpu')
+
+if USE_GPU:
+    print("="*80)
+    print("Model is using GPU")
+    print("="*80)
+
 
 class NN(nn.Module):
     
@@ -164,7 +171,7 @@ if USE_GPU:
     net.cuda()
 
 import pyro
-from pyro.distributions import Normal, Categorical
+from pyro.distributions import Normal, Uniform, Delta
 from pyro.infer import SVI, Trace_ELBO
 from pyro.optim import Adam
 from pyro.infer import EmpiricalMarginal, SVI, Trace_ELBO, TracePredictive
@@ -259,7 +266,7 @@ print('Logging experiment as: ', experiment_id)
 
 logger = Logger(os.path.join(TENSORBOARD_DIR, experiment_id))
 
-num_iterations = 1000
+num_iterations = 200
 loss = 0
 
 for j in range(num_iterations):
@@ -274,27 +281,31 @@ for j in range(num_iterations):
     print("Epoch ", j, " Loss ", total_epoch_loss_train)
 
 
-"""
+
 num_samples = 10
 def predict(x):
     sampled_models = [guide(None, None) for _ in range(num_samples)]
     yhats = [model(x).data for model in sampled_models]
     mean = torch.mean(torch.stack(yhats), 0)
-    return mean.numpy()
+    return mean.cpu().numpy
 
-"""
 print('Prediction when network is forced to predict')
 correct = 0
 total = 0
+
+#This still doesn't work
 for j, data in enumerate(test_generator):
     images, labels = data
     predicted = predict(images)
     total += labels.size(0)
-    correct += (predicted == labels.flatten().numpy()).sum().item()
-print("accuracy: %d %%" % (100 * correct / total))
+    #correct += (predicted == labels.flatten().numpy()).sum().item()
+#print("accuracy: %d %%" % (100 * correct / total))
 
 classes = ('4', '8')
-"""
+
+from functools import partial
+import pandas as pd
+
 
 for name, value in pyro.get_param_store().items():
     print(name, pyro.param(name))
@@ -316,5 +327,42 @@ def summary(traces, sites):
 def wrapped_model(x_data, y_data):
     pyro.sample("prediction", Delta(model(x_data, y_data)))
 
-posterior = svi.run(x_data, y_data)
+posterior = svi.run(data[0], data[1][:,-1])
+
+
+# posterior predictive distribution we can get samples from
+trace_pred = TracePredictive(wrapped_model,
+                             posterior,
+                             num_samples=1000)
+post_pred = trace_pred.run(data[0], None)
+post_summary = summary(post_pred, sites= ['prediction', 'obs'])
+mu = post_summary["prediction"]
+y = post_summary["obs"]
+
+print("sample y data:")
+print(y[1:10])
+
+print("mu_mean")
+print(mu["mean"])
+print("mu_5_pct")
+print(mu["5%"])
+print("mu_50_pct")
+print(mu["50%"])
+print("mu_95_pct")
+print(mu["95%"])
+
 """
+predictions = pd.DataFrame({
+    "pca1": data[0][:, 0],
+    "pca2": data[0][:, 1],
+    "mu_mean": mu["mean"],
+    "mu_perc_5": mu["5%"],
+    "mu_perc_95": mu["95%"],
+    "y_mean": y["mean"],
+    "y_perc_5": y["5%"],
+    "y_perc_95": y["95%"],
+    "true_gdp": data[1],
+})
+
+"""
+
