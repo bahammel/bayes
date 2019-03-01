@@ -30,6 +30,7 @@ if USE_GPU:
     print("="*80)
     print("Model is using GPU")
     print("="*80)
+    net.cuda()
 
 
 class NN(nn.Module):
@@ -76,11 +77,97 @@ training_generator = DataLoader(training_set, batch_size=128, shuffle=True)
 test_set = DataSet(X_pca, Y, transform=False)
 test_generator = DataLoader(test_set, batch_size=128, shuffle=True)
 
+"""
+[ins] In [2]: data[0]                                                                                                                                                                                                  
+Out[2]: 
+tensor([[[[0., 0., 0.,  ..., 0., 0., 0.],
+          [0., 0., 0.,  ..., 0., 0., 0.],
+          [0., 0., 0.,  ..., 0., 0., 0.],
+          ...,
+          [0., 0., 0.,  ..., 0., 0., 0.],
+          [0., 0., 0.,  ..., 0., 0., 0.],
+          [0., 0., 0.,  ..., 0., 0., 0.]]],
+
+          [0., 0., 0.,  ..., 0., 0., 0.],
+          [0., 0., 0.,  ..., 0., 0., 0.],
+          [0., 0., 0.,  ..., 0., 0., 0.]]]])
+
+[ins] In [3]: data[0].type                                                                                                                                                                                             
+Out[3]: <function Tensor.type>
+
+[ins] In [4]: data[0].shape                                                                                                                                                                                            
+Out[4]: torch.Size([16, 1, 28, 28])
+
+[ins] In [5]: data[0].view(-1,28*28)                                                                                                                                                                                   
+Out[5]: 
+tensor([[0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        ...,
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.]])
+
+[ins] In [6]: data[0].view(-1,28*28).type                                                                                                                                                                              
+Out[6]: <function Tensor.type>
+
+[ins] In [7]: data[0].view(-1,28*28).shape                                                                                                                                                                             
+Out[7]: torch.Size([16, 784])
+
+[ins] In [8]: data[1]                                                                                                                                                                                                  
+Out[8]: tensor([6, 5, 3, 7, 7, 1, 4, 3, 1, 4, 0, 3, 2, 3, 3, 3])
+
+[ins] In [9]: data[1].type                                                                                                                                                                                             
+Out[9]: <function Tensor.type>
+
+[ins] In [10]: data[1].shape                                                                                                                                                                                           
+Out[10]: torch.Size([16])
+
+*******************************
+Gauss Data from DataLoader
+*******************************
+[ins] In [11]: data[0]                                                                                                                                                                                                  
+Out[11]: 
+tensor([[ 6.9003e-01, -1.8227e-02,  1.0983e-02, -7.4624e-03,  8.7501e-03],
+        [-6.3656e-01, -6.6901e-04, -5.0721e-03, -2.3468e-03, -1.1236e-03],
+. . . (20 lines total)
+        [-6.4162e-01, -6.1063e-03,  1.9780e-03,  1.2656e-04,  2.8213e-04],
+        [-6.3423e-01,  3.2420e-04, -5.4580e-03,  4.3469e-03,  2.1659e-03]],
+       dtype=torch.float64)
+
+[ins] In [12]: data[0].type(torch.FloatTensor)                                                                                                                                                                          
+Out[12]: 
+tensor([[ 6.9003e-01, -1.8227e-02,  1.0983e-02, -7.4624e-03,  8.7501e-03],
+        [-6.3656e-01, -6.6901e-04, -5.0721e-03, -2.3468e-03, -1.1236e-03],
+. . . (20 lines total)
+        [-6.4162e-01, -6.1063e-03,  1.9780e-03,  1.2656e-04,  2.8213e-04],
+        [-6.3423e-01,  3.2420e-04, -5.4580e-03,  4.3469e-03,  2.1659e-03]])
+
+[ins] In [13]: data[1].type(torch.FloatTensor)                                                                                                                                                                          
+Out[13]: 
+tensor([[0.5000],
+        [2.0000],
+. . . (20 lines total)        
+        [2.0000],
+        [2.0000]])
+
+[ins] In [14]: data[1][:,-1].type(torch.FloatTensor)                                                                                                                                                                    
+Out[14]: 
+tensor([0.5000, 2.0000, 2.0000, 0.5000, 0.5000, 0.5000, 2.0000, 0.5000, 2.0000,
+        0.5000, 2.0000, 0.5000, 0.5000, 0.5000, 2.0000, 2.0000, 2.0000, 2.0000,
+        2.0000, 2.0000])
+
+
+In [8]: training_generator.dataset[0]                                                                                                                                                                             
+Out[8]: 
+(array([ 0.67239413,  0.0063108 ,  0.00350843,  0.00260235, -0.0110233 ]),
+ array([0.5]))
+
+"""
+
 
 
 net = NN(PC, 100, 1)
-if USE_GPU:
-    net.cuda()
 
 import pyro
 from pyro.distributions import Normal, Uniform, Delta
@@ -119,11 +206,6 @@ def model(x_data, y_data):
 
 
 softplus = torch.nn.Softplus()
-
-"""
-from pyro.contrib.autoguide import AutoDiagonalNormal 
-guide = AutoDiagonalNormal(model)
-"""
 
 def guide(x_data, y_data):
     
@@ -164,7 +246,6 @@ AdamArgs = { 'lr': 1e-2 }
 optimizer = torch.optim.Adam
 scheduler = pyro.optim.ExponentialLR({'optimizer': optimizer, 'optim_args': AdamArgs, 'gamma': 0.99995 })
 svi = SVI(model, guide, scheduler, loss=Trace_ELBO())
-
 """
 optimizer = Adam({"lr": 0.01})
 svi = SVI(model, guide, optimizer, loss=Trace_ELBO())
@@ -256,10 +337,9 @@ post_pred = trace_pred.run(data[0], None)
 post_summary = summary(post_pred, sites= ['prediction', 'obs'])
 mu = post_summary["prediction"]
 y = post_summary["obs"]
-y.insert(0, 'true', data[1].cpu().numpy())
 
 print("sample y data:")
-print(y.head(10))
+print(y[1:10])
 
 print("mu_mean")
 print(mu["mean"])

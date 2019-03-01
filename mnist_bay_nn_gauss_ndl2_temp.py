@@ -30,6 +30,7 @@ if USE_GPU:
     print("="*80)
     print("Model is using GPU")
     print("="*80)
+    net.cuda()
 
 
 class NN(nn.Module):
@@ -78,9 +79,8 @@ test_generator = DataLoader(test_set, batch_size=128, shuffle=True)
 
 
 
+
 net = NN(PC, 100, 1)
-if USE_GPU:
-    net.cuda()
 
 import pyro
 from pyro.distributions import Normal, Uniform, Delta
@@ -119,11 +119,6 @@ def model(x_data, y_data):
 
 
 softplus = torch.nn.Softplus()
-
-"""
-from pyro.contrib.autoguide import AutoDiagonalNormal 
-guide = AutoDiagonalNormal(model)
-"""
 
 def guide(x_data, y_data):
     
@@ -164,7 +159,6 @@ AdamArgs = { 'lr': 1e-2 }
 optimizer = torch.optim.Adam
 scheduler = pyro.optim.ExponentialLR({'optimizer': optimizer, 'optim_args': AdamArgs, 'gamma': 0.99995 })
 svi = SVI(model, guide, scheduler, loss=Trace_ELBO())
-
 """
 optimizer = Adam({"lr": 0.01})
 svi = SVI(model, guide, optimizer, loss=Trace_ELBO())
@@ -256,10 +250,9 @@ post_pred = trace_pred.run(data[0], None)
 post_summary = summary(post_pred, sites= ['prediction', 'obs'])
 mu = post_summary["prediction"]
 y = post_summary["obs"]
-y.insert(0, 'true', data[1].cpu().numpy())
 
 print("sample y data:")
-print(y.head(10))
+print(y[1:10])
 
 print("mu_mean")
 print(mu["mean"])

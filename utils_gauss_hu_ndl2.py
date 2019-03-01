@@ -59,7 +59,7 @@ def gauss_data_bay():
     for cases in range(num_of_cases):
         #Create num_of_cases different fake spectra, each made from a set of (mu, std, amp)
         I = 0.0; mu = 0.0; std = 0.0; amp = 0.0; mc = 0.0; mult = 1.0;
-        mu = np.random.choice(np.linspace(4, 8, 2))
+        mu = np.random.choice(np.linspace(5.8, 6.2, 2))
         #mu = 5.5
         #std = np.random.choice(np.linspace(2, 3, 2))
         std = 0.5

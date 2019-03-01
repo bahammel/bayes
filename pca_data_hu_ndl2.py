@@ -22,7 +22,7 @@ def pca_data():
     #xtest_use = scaler.transform(xtest)
     X_use = X
 
-    pca = PCA(n_components=5) 
+    pca = PCA(n_components=10) 
     #pca = PCA(0.99)
     pca.fit(X_use)
     #xtrain_hat = pca.transform([xtrain[0]])
