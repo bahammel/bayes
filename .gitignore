@@ -1,1 +1,6 @@
 *.pyc
+*.pt
+*_params
+*.npz
+*.out
+__pycache__/

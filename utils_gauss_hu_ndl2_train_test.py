@@ -49,26 +49,36 @@ def gauss_data_2():
 
     X = noise(X)
 
+    return hu, X, np.asarray(Y, dtype=np.float32)
 
 def gauss_data_bay():
-    hu = np.linspace(1, 10, 200) 
-    num_of_cases = 10000
+    hu = np.linspace(1, 10, 200)*1.0
+    num_of_cases = 50000
 
     X = []
     Y = []
+    X_test = []
+    Y_test = []
     for cases in range(num_of_cases):
         #Create num_of_cases different fake spectra, each made from a set of (mu, std, amp)
         I = 0.0; mu = 0.0; std = 0.0; amp = 0.0; mc = 0.0; mult = 1.0;
-        mu = np.random.choice(np.linspace(5.8, 6.2, 2))
+        mu = 6.0*1.0
+        #mu = np.random.choice(np.linspace(5.8, 6.2, 2))
+        shft = np.random.choice(np.linspace(-1, 1, 50))
+        mu_train = mu*(1. + shft/100.) 
+        mu_test = mu*(1. + shft/25.) 
+        #mu = np.random.choice(np.linspace(4, 8, 2))
         #mu = 5.5
         #std = np.random.choice(np.linspace(2, 3, 2))
-        std = 0.5
+        std = 0.2*1.0
 #        amp = np.random.choice(np.linspace(0.1, 1.0,20))
         amp = 0.5
-        #Add up num_of_gauss different Gaussians, where mu and std are scaled by mult, to make fake spectrum
-        I = amp * (1.0) / (std*np.sqrt(2.*np.pi)) * np.exp(-(hu - mu)**2./(2.* std**2.))
-        Y.append([mu])
-        X.append(I)
+        I_train = amp * (1.0) / (std*np.sqrt(2.*np.pi)) * np.exp(-((hu - mu_train)**2./(2.* std**2.))**1.0)
+        I_test = amp * (1.0) / (std*np.sqrt(2.*np.pi)) * np.exp(-((hu - mu_test)**2./(2.* std**2.))**1.0)
+        Y.append([mu_train])
+        X.append(I_train)
+        Y_test.append([mu_test])
+        X_test.append(I_test)
     Y = np.array(Y)
     print(Y.shape)
 #    print(Y)
@@ -76,11 +86,15 @@ def gauss_data_bay():
     print(X.shape)
 #    print(X)
 
-    X = noise(X)
+#    X = noise(X)
     
     
     plt.figure()
     plt.title('data')
     plt.plot(hu,np.transpose(X[::50]))
+    plt.figure()
+    plt.title('data')
+    plt.plot(hu,np.transpose(X_test[::50]))
 
-    return hu, X, np.asarray(Y, dtype=np.float32)
+
+    return hu, X, X_test, np.asarray(Y, dtype=np.float32), np.asarray(Y_test, dtype=np.float32)

@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import utils_gauss_hu_ndl2 as utils_gauss_hu
+import utils_gauss_hu_ndl2_train_test as utils_gauss_hu
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.datasets import load_digits
@@ -9,7 +9,8 @@ from tqdm import tqdm
 def pca_data():
     plt.close('all')
 
-    hu, X, Y  = utils_gauss_hu.gauss_data_bay()
+    hu, X, X_test, Y, Y_test  = utils_gauss_hu.gauss_data_bay()
+    #hu, X, Y  = utils_gauss_hu.gauss_data_2()
 
     scaler = StandardScaler()
     # print(scaler.fit(np.array(X)))
@@ -20,10 +21,10 @@ def pca_data():
     # Apply transform to both the training set and the test set.
     #xtrain_use = scaler.transform(xtrain)
     #xtest_use = scaler.transform(xtest)
-    X_use = X
+    X_use = X_test
 
-    pca = PCA(n_components=10) 
-    #pca = PCA(0.99)
+    pca = PCA(n_components=30) 
+    #pca = PCA(0.9999)
     pca.fit(X_use)
     #xtrain_hat = pca.transform([xtrain[0]])
     PC = pca.n_components_ 
@@ -31,9 +32,10 @@ def pca_data():
 
     evecs = pca.components_[pca.explained_variance_.argsort()][::-1]
     evals = pca.explained_variance_[pca.explained_variance_.argsort()][::-1]
-    X_pca = pca.transform(X_use)
+    X_pca_test = pca.transform(X_use)
+    X_pca = pca.transform(X)
 
-    return hu, PC, X_pca, X, Y
+    return hu, PC, X_pca_test, X_pca, X, X_test, Y, Y_test
 
 
 """

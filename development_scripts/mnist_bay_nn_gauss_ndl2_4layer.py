@@ -34,13 +34,19 @@ if USE_GPU:
 
 class NN(nn.Module):
     
-    def __init__(self, input_size, hidden_size, output_size):
+    def __init__(self, input_size, hidden1_size, hidden2_size, hidden3_size, output_size):
         super(NN, self).__init__()
-        self.fc1 = nn.Linear(input_size, hidden_size)
-        self.out = nn.Linear(hidden_size, output_size)
+        self.fc1 = nn.Linear(input_size, hidden1_size)
+        self.fc2 = nn.Linear(hidden1_size, hidden2_size)
+        self.fc3 = nn.Linear(hidden2_size, hidden3_size)
+        self.out = nn.Linear(hidden3_size, output_size)
         
     def forward(self, x):
         output = self.fc1(x)
+        output = F.relu(output)
+        output = self.fc2(output)
+        output = F.relu(output)
+        output = self.fc3(output)
         output = F.relu(output)
         output = self.out(output)
         return output
@@ -78,7 +84,7 @@ test_generator = DataLoader(test_set, batch_size=128, shuffle=True)
 
 
 
-net = NN(PC, 100, 1)
+net = NN(PC, 100, 30, 10, 1)
 if USE_GPU:
     net.cuda()
 
@@ -96,11 +102,18 @@ def model(x_data, y_data):
     
     fc1w_prior = Normal(loc=torch.zeros_like(net.fc1.weight), scale=torch.ones_like(net.fc1.weight))
     fc1b_prior = Normal(loc=torch.zeros_like(net.fc1.bias), scale=torch.ones_like(net.fc1.bias))
+
+    fc2w_prior = Normal(loc=torch.zeros_like(net.fc2.weight), scale=torch.ones_like(net.fc2.weight))
+    fc2b_prior = Normal(loc=torch.zeros_like(net.fc2.bias), scale=torch.ones_like(net.fc2.bias))
     
+    fc3w_prior = Normal(loc=torch.zeros_like(net.fc3.weight), scale=torch.ones_like(net.fc3.weight))
+    fc3b_prior = Normal(loc=torch.zeros_like(net.fc3.bias), scale=torch.ones_like(net.fc3.bias))
+
     outw_prior = Normal(loc=torch.zeros_like(net.out.weight), scale=torch.ones_like(net.out.weight))
     outb_prior = Normal(loc=torch.zeros_like(net.out.bias), scale=torch.ones_like(net.out.bias))
     
-    priors = {'fc1.weight': fc1w_prior, 'fc1.bias': fc1b_prior,  'out.weight': outw_prior, 'out.bias': outb_prior}
+    priors = {'fc1.weight': fc1w_prior, 'fc1.bias': fc1b_prior, 'fc2.weight': fc2w_prior, 'fc2.bias': fc2b_prior,\
+              'fc3.weight': fc3w_prior, 'fc3.bias': fc3b_prior, 'out.weight': outw_prior, 'out.bias': outb_prior}
     # lift module parameters to random variables sampled from the priors
     lifted_module = pyro.random_module("module", net, priors)
     # sample a regressor (which also samples w and b)
@@ -139,6 +152,33 @@ def guide(x_data, y_data):
     fc1b_mu_param = pyro.param("fc1b_mu", fc1b_mu)
     fc1b_sigma_param = softplus(pyro.param("fc1b_sigma", fc1b_sigma))
     fc1b_prior = Normal(loc=fc1b_mu_param, scale=fc1b_sigma_param)
+
+    # Second layer weight distribution priors
+    fc2w_mu = torch.randn_like(net.fc2.weight)
+    fc2w_sigma = torch.randn_like(net.fc2.weight)
+    fc2w_mu_param = pyro.param("fc2w_mu", fc2w_mu)
+    fc2w_sigma_param = softplus(pyro.param("fc2w_sigma", fc2w_sigma))
+    fc2w_prior = Normal(loc=fc2w_mu_param, scale=fc2w_sigma_param)
+    # Second layer bias distribution priors
+    fc2b_mu = torch.randn_like(net.fc2.bias)
+    fc2b_sigma = torch.randn_like(net.fc2.bias)
+    fc2b_mu_param = pyro.param("fc2b_mu", fc2b_mu)
+    fc2b_sigma_param = softplus(pyro.param("fc2b_sigma", fc2b_sigma))
+    fc2b_prior = Normal(loc=fc2b_mu_param, scale=fc2b_sigma_param)
+
+    #3rd layer weight distribution priors
+    fc3w_mu = torch.randn_like(net.fc3.weight)
+    fc3w_sigma = torch.randn_like(net.fc3.weight)
+    fc3w_mu_param = pyro.param("fc3w_mu", fc3w_mu)
+    fc3w_sigma_param = softplus(pyro.param("fc3w_sigma", fc3w_sigma))
+    fc3w_prior = Normal(loc=fc3w_mu_param, scale=fc3w_sigma_param)
+    # Third layer bias distribution priors
+    fc3b_mu = torch.randn_like(net.fc3.bias)
+    fc3b_sigma = torch.randn_like(net.fc3.bias)
+    fc3b_mu_param = pyro.param("fc3b_mu", fc3b_mu)
+    fc3b_sigma_param = softplus(pyro.param("fc3b_sigma", fc3b_sigma))
+    fc3b_prior = Normal(loc=fc3b_mu_param, scale=fc3b_sigma_param)
+
     # Output layer weight distribution priors
     outw_mu = torch.randn_like(net.out.weight)
     outw_sigma = torch.randn_like(net.out.weight)
@@ -151,7 +191,8 @@ def guide(x_data, y_data):
     outb_mu_param = pyro.param("outb_mu", outb_mu)
     outb_sigma_param = softplus(pyro.param("outb_sigma", outb_sigma))
     outb_prior = Normal(loc=outb_mu_param, scale=outb_sigma_param)
-    priors = {'fc1.weight': fc1w_prior, 'fc1.bias': fc1b_prior, 'out.weight': outw_prior, 'out.bias': outb_prior}
+    priors = {'fc1.weight': fc1w_prior, 'fc1.bias': fc1b_prior, 'fc2.weight': fc2w_prior, 'fc2.bias': fc2b_prior,\
+              'fc3.weight': fc3w_prior, 'fc3.bias': fc3b_prior, 'out.weight': outw_prior, 'out.bias': outb_prior}
     
     lifted_module = pyro.random_module("module", net, priors)
     return lifted_module()
@@ -184,7 +225,7 @@ print('Logging experiment as: ', experiment_id)
 
 logger = Logger(os.path.join(TENSORBOARD_DIR, experiment_id))
 
-num_iterations = 200
+num_iterations = 1000
 loss = 0
 
 for j in range(num_iterations):
@@ -219,7 +260,6 @@ for j, data in enumerate(test_generator):
     #correct += (predicted == labels.flatten().numpy()).sum().item()
 #print("accuracy: %d %%" % (100 * correct / total))
 
-classes = ('4', '8')
 
 from functools import partial
 import pandas as pd
@@ -269,6 +309,12 @@ print("mu_50_pct")
 print(mu["50%"])
 print("mu_95_pct")
 print(mu["95%"])
+
+
+#How do I get these two plots to overlay?
+df = pd.DataFrame(y) 
+ax = df.reset_index().plot.scatter(x='index', y='true', color='Red', label='True') 
+df.reset_index().plot.scatter(x='index', y='mean', color='Blue', label='Mean') 
 
 """
 predictions = pd.DataFrame({

@@ -177,7 +177,7 @@ def guide(x_data, y_data):
     return lifted_module()
 
 
-
+"""
 # Reducing Learning Rate. ReduceOnPlateau is not supported.
 #This code works but loss doesn't get lower than constant LR. Perhaps gamma should be closer to 1.0?
 AdamArgs = { 'lr': 1e-2 }
@@ -188,7 +188,7 @@ svi = SVI(model, guide, scheduler, loss=Trace_ELBO())
 """
 optimizer = Adam({"lr": 0.01})
 svi = SVI(model, guide, optimizer, loss=Trace_ELBO())
-"""
+
 
 """
 num_iterations = 1
@@ -204,7 +204,7 @@ print('Logging experiment as: ', experiment_id)
 
 logger = Logger(os.path.join(TENSORBOARD_DIR, experiment_id))
 
-num_iterations = 1000
+num_iterations = 200
 loss = 0
 
 for j in range(num_iterations):
@@ -288,6 +288,12 @@ print("mu_50_pct")
 print(mu["50%"])
 print("mu_95_pct")
 print(mu["95%"])
+
+
+#How do I get these two plots to overlay?
+df = pd.DataFrame(y) 
+ax = df.reset_index().plot.scatter(x='index', y='true', color='Red', label='True') 
+df.reset_index().plot.scatter(x='index', y='mean', color='Blue', label='Mean') 
 
 """
 predictions = pd.DataFrame({
