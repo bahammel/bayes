@@ -182,7 +182,7 @@ def guide(x_data, y_data):
 AdamArgs = { 'lr': 1e-2 }
 optimizer = torch.optim.Adam
 scheduler = pyro.optim.ExponentialLR({'optimizer': optimizer, 'optim_args': AdamArgs, 'gamma': 0.99995 })
-svi = SVI(model, guide, scheduler, loss=Trace_ELBO(), num_samples=100)
+svi = SVI(model, guide, scheduler, loss=Trace_ELBO(), num_samples=1000)
 
 """
 
@@ -195,7 +195,7 @@ print('Logging experiment as: ', experiment_id)
 
 logger = Logger(os.path.join(TENSORBOARD_DIR, experiment_id))
 
-num_iterations = 250
+num_iterations = 1000
 loss = 0
 losses = []
 for j in range(num_iterations):
@@ -228,7 +228,7 @@ print("Model's state_dict:")
 for param_tensor in NN(PC,100,1).state_dict(): 
     print(param_tensor, "\t", NN(PC,100,1).state_dict()[param_tensor].size()) 
 
-num_samples = 100
+num_samples = 500
 def predict(x):
     sampled_models = [guide(None, None) for _ in range(num_samples)]
     yhats = [model(x).data for model in sampled_models]
@@ -244,7 +244,6 @@ total = 0
 accept = []
 tol = 0.1
 
-#This still doesn't work
 for j, data in enumerate(training_generator):
     images, labels = data
     mean_predicted, predicted_list = predict(images)
@@ -265,6 +264,13 @@ for j, data in enumerate(training_generator):
 
 print(f"{100*correct/total:.2f}% of the labels are inside the std of the predictions")
 
+
+fig = plt.figure(dpi=100, figsize=(5, 4))
+plt.plot(np_labels[::10], 'o', c='b')  
+plt.errorbar(range(len(y_mu[::10])), y_mu[::10], yerr=y_std[::10], fmt='o', c='r')
+plt.ylabel('y_mu') 
+plt.xlabel('sample')     
+
 # print out some stats from the last data batch
 exp = zip(npredicted.mean(axis=0), npredicted.std(axis=0))
 for i,(m,s) in enumerate(exp): 
@@ -273,7 +279,7 @@ for i,(m,s) in enumerate(exp):
 
 labels.data.shape 
 #labels.shape 
-np.array(predicted).shape
+#np.array(predicted).shape
 
 from functools import partial
 import pandas as pd
@@ -303,17 +309,13 @@ def wrapped_model(x_data, y_data):
     pyro.sample("prediction", Delta(model(x_data, y_data)))
 
 
-
-
-#moved up  posterior = svi.run(data_train[0], data_train[1][:,-1])
-
 # Break
 # import Ipython; Ipython.embed()
 
 # posterior predictive distribution we can get samples from
 trace_pred = TracePredictive(wrapped_model,
                              posterior,
-                             num_samples=100)
+                             num_samples=1000)
 post_pred = trace_pred.run(data_train[0], None)  #inputing pca components?
 post_summary = summary(post_pred, sites= ['prediction', 'obs'])
 meuw = post_summary["prediction"]
@@ -352,6 +354,41 @@ for j in range(num_iterations):
 
 
 posterior = svi.run(data_test[0], data_test[1][:,-1])
+
+correct = 0
+total = 0
+
+
+accept = []
+tol = 0.1
+
+#This still doesn't work
+for j, data in enumerate(test_generator):
+    images, labels = data
+    mean_predicted, predicted_list = predict(images)
+
+    npredicted = np.array([_.cpu().numpy() for _ in predicted_list])[..., 0] 
+    y_mu = npredicted.mean(axis=0)
+    y_std = npredicted.std(axis=0)
+    tolLo = y_mu - y_std
+    tolHi = y_mu + y_std
+    np_labels = labels.cpu().numpy()[:, 0]
+    correct += np.sum((tolLo <= np_labels) & (np_labels <= tolHi))
+    total += labels.size(0)
+    # tolLo = (1.- tol) * labels.cpu().data.flatten().numpy()
+    # tolHi = (1 + tol) * labels.cpu().data.flatten().numpy()
+    # accept += (tolLo.all() <= npredicted.all() <= tolHi.all())
+    # correct += np.sum((tolLo <= mean_predicted) & (mean_predicted <= tolHi))
+    #.sum().item()
+
+print(f"{100*correct/total:.2f}% of the labels are inside the std of the predictions")
+
+
+fig = plt.figure(dpi=100, figsize=(5, 4))
+plt.plot(np_labels[::10], 'o', c='b')  
+plt.errorbar(range(len(y_mu[::10])), y_mu[::10], yerr=y_std[::10], fmt='o', c='r')
+plt.ylabel('meuw') 
+plt.xlabel('sample')     
 
 
 # posterior predictive distribution we can get samples from
