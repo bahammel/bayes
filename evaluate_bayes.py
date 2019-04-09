@@ -17,13 +17,14 @@ import pyro.optim as optim
 USE_GPU = torch.cuda.is_available()
 
 #exp_id = '2019-03-11T10:02:52.595718'   
-exp_id = '2019-03-13T11:41:39.463032'
+#exp_id = '2019-04-05T16:51:44.577528'
+exp_id = '2019-04-08T09:16:00.525043'
 torch.set_default_tensor_type(
     'torch.cuda.FloatTensor' if USE_GPU else 'torch.FloatTensor'
 )
 
 CHECKPOINT = f'/usr/WS1/hammel1/proj/checkpoints/{exp_id}_params'
-TEMP = f'/usr/WS1/hammel1/proj/bayes/{exp_id}_params.pt'
+PARMS = f'/usr/WS1/hammel1/proj/bayes/{exp_id}_params.pt'
 print('exp_id is:', exp_id)
 print('CHECKPOINT is:', CHECKPOINT)
 
@@ -125,7 +126,7 @@ def guide(x_data, y_data):
 
 
 net = NN(PC,100,1)
-net.load_state_dict(torch.load(TEMP))
+#net.load_state_dict(torch.load(TEMP))
 """
 torch.load(CHECKPOINT)
 state = torch.load(CHECKPOINT)
@@ -133,18 +134,27 @@ net.load_state_dict(state['state_dict'])
 optimizer.load_state_dict(state['optimizer'])
 #https://stackoverflow.com/questions/42703500/best-way-to-save-a-trained-model-in-pytorch
 """
-
+"""
 #Print model's state_dic    
 print("Model's state_dict:") 
 for param_tensor in NN(PC,100,1).state_dict(): 
     print(param_tensor, "\t", NN(PC,100,1).state_dict()[param_tensor].size()) 
-
+"""
 
 AdamArgs = { 'lr': 1e-2 }
 optimizer = torch.optim.Adam
 scheduler = pyro.optim.ExponentialLR({'optimizer': optimizer, 'optim_args': AdamArgs, 'gamma': 0.99995 })
 svi = SVI(model, guide, scheduler, loss=Trace_ELBO())
 
+pyro.get_param_store().load(PARMS)            
+
+"""
+for name, value in pyro.get_param_store().items():
+    print(name, pyro.param(name))
+"""
+
+for name, value in pyro.get_param_store().items(): 
+    print(name, pyro.param(name).cpu().detach().numpy().mean()) 
 """
 # Print optimizer's state_dict
 #Gives Error
@@ -152,6 +162,10 @@ print("Optimizer's state_dict:")
 for var_name in optimizer.state_dict():
     print(var_name, "\t", optimizer().state_dict()[var_name])   # Print optimizer's state_dict
 """
+
+
+# Break
+#pdb.set_trace()
 
 
 num_samples = 100
@@ -232,4 +246,5 @@ plt.errorbar(nx[:,0],nx[:,2], yerr=nx[:,3], fmt='o', c='r')
 #plt.ylim(0.5,0.7)
 plt.ylabel('meuw')
 plt.xlabel('sample')
+
 

@@ -65,8 +65,8 @@ def gauss_data_bay():
         mu = 6.0*1.0
         #mu = np.random.choice(np.linspace(5.8, 6.2, 2))
         shft = np.random.choice(np.linspace(-1, 1, 50))
-        mu_train = mu*(1. + shft/100.) 
-        mu_test = mu*(1. + shft/25.) 
+        mu_train = mu*(1. + shft/1.e9) 
+        mu_test = mu*(1. + shft/1.e9) 
         #mu = np.random.choice(np.linspace(4, 8, 2))
         #mu = 5.5
         #std = np.random.choice(np.linspace(2, 3, 2))

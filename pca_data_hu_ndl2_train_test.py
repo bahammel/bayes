@@ -35,6 +35,17 @@ def pca_data():
     X_pca_test = pca.transform(X_use)
     X_pca = pca.transform(X)
 
+
+    import pickle
+    s = pickle.dumps(pca)
+    from datetime import datetime                                                                                                                                                          
+
+    experiment_id = datetime.now().isoformat() 
+    filename = f"/usr/WS1/hammel1/proj/data/{experiment_id}_pca_pickle"    
+    outfile = open(filename,'wb')
+    pickle.dump(pca, outfile)
+    outfile.close()
+
     return hu, PC, X_pca_test, X_pca, X, X_test, Y, Y_test
 
 

@@ -1,0 +1,18 @@
+#!/bin/csh -f
+
+#MSUB -l feature=rzhasgpu
+# MSUB -l gres=lscratchrzb
+#MSUB -l nodes=1
+#MSUB -l ttc=8
+#MSUB -l walltime=4:00:00
+#MSUB -A adev
+#MSUB -j oe
+# MSUB -N run_111197
+#MSUB -o bayes.log
+
+set ROOTDIR = /usr/WS1/hammel1/proj/bayes/
+set WORKDIR = $ROOTDIR/
+cd $WORKDIR
+
+source gpu_venv/bin/activate
+python bay_nn_gauss_1HL.py

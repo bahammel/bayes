@@ -195,7 +195,7 @@ print('Logging experiment as: ', experiment_id)
 
 logger = Logger(os.path.join(TENSORBOARD_DIR, experiment_id))
 
-num_iterations = 1000
+num_iterations = 2000
 loss = 0
 losses = []
 for j in range(num_iterations):
@@ -218,15 +218,40 @@ plt.ylabel("Epoch loss")
 
 posterior = svi.run(data_train[0], data_train[1][:,-1])
 
+# Break
+#import Ipython; Ipython.embed()
+
+# Save parameters
+pyro.get_param_store().save(f'{experiment_id}_params.pt')
+
 torch.save(model, os.path.join(CHECKPOINT_DIR, f'{experiment_id}_latest'))
 
 #Save Parameters: preferred method
-torch.save(NN(PC,100,1).state_dict(), f'{experiment_id}_params.pt') 
+torch.save(net.state_dict(), f'{experiment_id}_state.pt')
+#Save everything
+torch.save(net,f'{experiment_id}_full.pt')
 
+output = {  
+    'model': model, 
+    'guide': guide,  
+    'state_dict': net.state_dict(), 
+    'svi': svi, 
+}  
+torch.save(output, f'{experiment_id}_output.pt')              
+
+"""
+ERROR: name 'params' is not defined
+output = { 
+    'guide': guide, 
+    'state_dict': net.state_dict(), 
+    'params': params 
+} 
+torch.save(output, f'{experiment_id}_output.pt')            
+"""
 #Print model's state_dic    
 print("Model's state_dict:") 
-for param_tensor in NN(PC,100,1).state_dict(): 
-    print(param_tensor, "\t", NN(PC,100,1).state_dict()[param_tensor].size()) 
+for param_tensor in net.state_dict(): 
+    print(param_tensor, "\t", net.state_dict()[param_tensor].size()) 
 
 num_samples = 500
 def predict(x):
@@ -284,9 +309,10 @@ labels.data.shape
 from functools import partial
 import pandas as pd
 
-
+"""
 for name, value in pyro.get_param_store().items():
     print(name, pyro.param(name))
+"""
 
 for name, value in pyro.get_param_store().items(): 
     print(name, pyro.param(name).cpu().detach().numpy().mean()) 
@@ -342,7 +368,9 @@ plt.ylabel('meuw')
 plt.xlabel('sample')
 
 # Break
-import Ipython; Ipython.embed()
+import Ipython
+from Ipython import embed;embed()
+
 
 print('Prediction when data is shifted')
 
@@ -352,8 +380,11 @@ for j in range(num_iterations):
         temp=batch_id
 
 
+print('Starting Posterior')
 
 posterior = svi.run(data_test[0], data_test[1][:,-1])
+
+print('Finished Posterior')
 
 correct = 0
 total = 0
@@ -362,7 +393,7 @@ total = 0
 accept = []
 tol = 0.1
 
-#This still doesn't work
+#
 for j, data in enumerate(test_generator):
     images, labels = data
     mean_predicted, predicted_list = predict(images)
@@ -375,11 +406,6 @@ for j, data in enumerate(test_generator):
     np_labels = labels.cpu().numpy()[:, 0]
     correct += np.sum((tolLo <= np_labels) & (np_labels <= tolHi))
     total += labels.size(0)
-    # tolLo = (1.- tol) * labels.cpu().data.flatten().numpy()
-    # tolHi = (1 + tol) * labels.cpu().data.flatten().numpy()
-    # accept += (tolLo.all() <= npredicted.all() <= tolHi.all())
-    # correct += np.sum((tolLo <= mean_predicted) & (mean_predicted <= tolHi))
-    #.sum().item()
 
 print(f"{100*correct/total:.2f}% of the labels are inside the std of the predictions")
 
