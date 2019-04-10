@@ -28,7 +28,7 @@ class DataSet(Dataset):
         return torch.tensor(x, device=device), torch.tensor(y, device=device)
 
 
-def get_dataset(m=2.5, b=1.2, epsilon=.01):
+def get_dataset(m=2.5, b=1.2, epsilon=3):
     print(f'Fitting line: y={m}x+{b}')
     training_set = DataSet(m=m, b=b, epsilon=epsilon)
     return DataLoader(training_set, batch_size=512)

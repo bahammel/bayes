@@ -39,7 +39,6 @@ def train_bayes(training_generator):
     for e in range(EPOCHS):
         losses = []
         for x_data, y_data in tqdm(training_generator):
-            # calculate the loss and take a gradient step
             losses.append(svi.step(x_data, y_data))
         print(np.mean(losses))
 

@@ -1,3 +1,4 @@
+import os
 import torch
 import pyro
 from pyro.distributions import Delta
@@ -48,36 +49,7 @@ def wrapped_model(x_data, y_data):
     pyro.sample("prediction", Delta(model(x_data, y_data)))
 
 
-def plot_mu(df):
-    plt.figure()
-    plt.plot(df['x_data'], df['y_data'], 'o', label='true')
-    plt.plot(df['x_data'], df['mu_mean'], label='mu')
-    plt.fill_between(df["x_data"],
-                     df["mu_perc_5"],
-                     df["mu_perc_95"],
-                     alpha=0.5)
-    plt.legend()
-
-
-def plot_y(df):
-    plt.figure()
-    plt.plot(df['x_data'], df['y_data'], 'o', label='true')
-    plt.plot(df['x_data'], df['y_mean'], label='mu')
-    plt.fill_between(df["x_data"],
-                     df["y_perc_5"],
-                     df["y_perc_95"],
-                     alpha=0.5)
-    plt.legend()
-
-
-if __name__ == '__main__':
-    svi, model, guide = get_pyro_model(return_all=True)
-    training_generator = iter(get_dataset())
-    x_data, y_data = next(training_generator)
-
-    print(*glob.glob(SAVE_DIR), sep='\n')
-    idx = int(input("file?> "))
-    pyro.get_param_store().load(glob.glob(SAVE_DIR)[idx])
+def trace_summary(svi, xdata, ydata):
 
     posterior = svi.run(x_data, y_data)
 
@@ -104,8 +76,73 @@ if __name__ == '__main__':
         "y_data": y_data.cpu().numpy().ravel()[idx],
     })
 
+    plot_mu(df)
+    plt.title('trace summary: mu')
+    plot_y(df)
+    plt.title('trace summary: y')
+
+
+def guide_summary(guide, x_data, y_data):
+    sampled_models = [guide(None, None) for _ in range(1000)]
+    npredicted = np.asarray(
+        [model(x_data).data.cpu().numpy()[:, 0] for model in sampled_models]
+    )
+    y_mean = np.mean(npredicted, axis=0)
+    y_5q = np.percentile(npredicted, 5, axis=0)
+    y_95q = np.percentile(npredicted, 95, axis=0)
+
+    x = x_data.cpu().numpy().ravel()
+    idx = np.argsort(x)
+
+    df = pd.DataFrame({
+        "x_data": x[idx],
+        "y_mean": y_mean[idx],
+        "y_perc_5": y_5q[idx],
+        "y_perc_95": y_95q[idx],
+        "y_data": y_data.cpu().numpy().ravel()[idx],
+    })
+
+    plot_y(df)
+    plt.title('Guide summary')
+
+
+def plot_mu(df):
+    plt.figure()
+    plt.plot(df['x_data'], df['y_data'], 'o', color='C0', label='true')
+    plt.plot(df['x_data'], df['mu_mean'], color='C1', label='mu')
+    plt.fill_between(df["x_data"],
+                     df["mu_perc_5"],
+                     df["mu_perc_95"],
+                     color='C1',
+                     alpha=0.5)
+    plt.legend()
+
+
+def plot_y(df):
+    plt.figure()
+    plt.plot(df['x_data'], df['y_data'], 'o', color='C0', label='true')
+    plt.plot(df['x_data'], df['y_mean'], color='C1', label='y')
+    plt.fill_between(df["x_data"],
+                     df["y_perc_5"],
+                     df["y_perc_95"],
+                     color='C1',
+                     alpha=0.5)
+    plt.legend()
+
+
+if __name__ == '__main__':
+    svi, model, guide = get_pyro_model(return_all=True)
+    training_generator = iter(get_dataset())
+    x_data, y_data = next(training_generator)
+
+    saved_param_files = glob.glob(SAVE_DIR)
+    saved_param_files.sort(key=os.path.getmtime)
+    print(*saved_param_files, sep='\n')
+    idx = int(input("file?> "))
+    pyro.get_param_store().load(saved_param_files[idx])
+
     for name, value in pyro.get_param_store().items():
         print(name, pyro.param(name))
 
-    plot_mu(df)
-    plot_y(df)
+    trace_summary(svi, x_data, y_data)
+    guide_summary(guide, x_data, y_data)
