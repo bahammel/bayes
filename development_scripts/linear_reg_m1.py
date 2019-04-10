@@ -20,19 +20,15 @@ Bayesian Regression
 Learning a function of the form:
     y = wx + b
 """
-"""
-torch.set_default_tensor_type('torch.cuda.FloatTensor')
-USE_GPU = torch.cuda.is_available()
-device = torch.device('cuda' if USE_GPU else 'cpu')
-"""
+
+
 # generate toy dataset
-def build_linear_dataset(N, p, noise_std=2.0):
+def build_linear_dataset(N, p, noise_std=0.01):
     X = np.random.rand(N, p)
     # use random integer weights from [0, 7]
-#    w = np.random.randint(1, 2, size=p)
-    w = [0,0]
+    w = np.random.randint(1, 4, size=p)
     print('w = {}'.format(w))
-    y = np.matmul(X, w)  + np.random.normal(0, noise_std, size=N)
+    y = np.matmul(X, w)  # + np.random.normal(0, noise_std, size=N)
     y = y.reshape(N, 1)
     X, y = torch.tensor(X), torch.tensor(y)
     data = torch.cat((X, y), 1)
@@ -51,7 +47,7 @@ class RegressionModel(nn.Module):
         return self.linear(x)
 
 
-N = 1000  # size of toy data
+N = 100  # size of toy data
 p = 2  # number of features
 
 softplus = nn.Softplus()
@@ -120,12 +116,9 @@ def main(args):
         regression_model.cuda()
 
     # perform inference
-    AdamArgs = { 'lr': 1e-2 }
-    optimizer = torch.optim.Adam
-    scheduler = pyro.optim.ExponentialLR({'optimizer': optimizer, 'optim_args': AdamArgs, 'gamma': 0.99995 })
-#    optim = Adam({"lr": 0.05})
+    optim = Adam({"lr": 0.05})
     elbo = JitTrace_ELBO() if args.jit else Trace_ELBO()
-    svi = SVI(model, guide, scheduler, loss=elbo)
+    svi = SVI(model, guide, optim, loss=elbo)
     for j in range(args.num_epochs):
         if args.batch_size == N:
             # use the entire data set
@@ -145,8 +138,10 @@ def main(args):
         if j % 100 == 0:
             print("epoch avg loss {}".format(epoch_loss / float(N)))
 
-    sum_ = analysis(svi, data)
+#    sum_ = analysis(svi, data)
 
+# Break
+#import Ipython; Ipython.embed()
 
 def plot_data(x_data, y_data, title, ):
     fig = plt.figure(title)
@@ -158,7 +153,7 @@ def plot_data(x_data, y_data, title, ):
     ax.set_xlabel('x1')
     ax.set_ylabel('x2')
     ax.set_zlabel('y')
-    plt.show()
+
 
 def summary(traces, sites):
 
@@ -200,26 +195,20 @@ def analysis(svi, data):
     post_summary = summary(post_pred, sites=['prediction', 'obs'])
     mu = post_summary["prediction"]
     y = post_summary["obs"]
-    print("sample Prediction (mu) data:")
-    print(mu.head(10))
-    print("sample Observation (y) data:")
-    print(y.head(10))
-
     x_data = data[:, :-1]
     y_data = data[:, -1]
     plot_data(x_data, y_data, "predictions")
-#    input()
+    input()
     plot_data(x_data, y['mean'], "predictions")
-#    plt.show()
     #break
-    #import Ipython; Ipython.embed()
+#    import Ipython; Ipython.embed()
     return post_summary
 
 if __name__ == '__main__':
     assert pyro.__version__.startswith('0.3.1')
     parser = argparse.ArgumentParser(description="parse args")
     parser.add_argument('-n', '--num-epochs', default=1000, type=int)
-    parser.add_argument('-b', '--batch-size', default=128, type=int)
+    parser.add_argument('-b', '--batch-size', default=N, type=int)
     parser.add_argument('--cuda', action='store_true')
     parser.add_argument('--jit', action='store_true')
     args = parser.parse_args()
