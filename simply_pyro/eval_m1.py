@@ -11,10 +11,13 @@ from functools import partial
 import pandas as pd
 import numpy as np
 
-torch.set_default_tensor_type('torch.cuda.FloatTensor')
+torc.set_default_tensor_type('torch.cuda.FloatTensor')
 USE_GPU = torch.cuda.is_available()
 device = torch.device('cuda' if USE_GPU else 'cpu')
-SAVE_DIR = '/usr/WS1/hammel1/proj/checkpoints/bayes/*'
+#SAVE_DIR = '/usr/WS1/hammel1/proj/checkpoints/bayes/*'
+exp_id = '2019-04-11T09:30:21.884475' 
+SAVE_DIR = f'/usr/WS1/hammel1/proj/checkpoints/bayes/{exp_id}'
+DATA_DIR = f'/usr/WS1/hammel1/proj/data/{exp_id}'
 
 if USE_GPU:
     print("=" * 80)
@@ -131,15 +134,23 @@ def plot_y(df,LS,COL1,COL2,MARK,LAB):
 
 if __name__ == '__main__':
     svi, model, guide = get_pyro_model(return_all=True)
-    training_generator = iter(get_dataset())
-    x_data, y_data = next(training_generator)
 
-    saved_param_files = glob.glob(SAVE_DIR)
-    saved_param_files.sort(key=os.path.getmtime)
-    print(*saved_param_files, sep='\n')
-    idx = int(input("file?> "))
-    pyro.get_param_store().load(saved_param_files[idx])
+#    saved_data_files = glob.glob(DATA_DIR)
+#    saved_data_files.sort(key=os.path.getmtime)
+#    print(*saved_data_files, sep='\n')
+#    idx = int(input("file?> "))
+#    torch.load(saved_data_files[idx])
+    torch.load(DATA_DIR)
+#    training_generator = np.load(saved_data_files[idx])
+#    training_generator = iter(get_dataset())
+#    x_data, y_data = next(training_generator)
 
+#    saved_param_files = glob.glob(SAVE_DIR)
+#    saved_param_files.sort(key=os.path.getmtime)
+#    print(*saved_param_files, sep='\n')
+#    idx = int(input("file?> "))
+#    pyro.get_param_store().load(saved_param_files[idx])
+    pyro.get_param_store().load(SAVE_DIR)
     for name, value in pyro.get_param_store().items():
         print(name, pyro.param(name))
 

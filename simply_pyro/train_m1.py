@@ -9,7 +9,9 @@ from datetime import datetime
 experiment_id = datetime.now().isoformat()
 
 EPOCHS = 50
+DATA_DIi = '/usr/WS1/hammel1/proj/data/'
 SAVE_DIR = f'/usr/WS1/hammel1/proj/checkpoints/bayes/{experiment_id}'
+DATA_DIR = f'/usr/WS1/hammel1/proj/data/{experiment_id}'
 
 def train_nn(training_generator):
     regression_model = RegressionModel(p=1)
@@ -47,7 +49,7 @@ def train_bayes(training_generator):
     save_model = input("save model > ")
     if save_model.lower().startswith('y'):
         pyro.get_param_store().save(SAVE_DIR)
-
+        torch.save([x_data, y_data], DATA_DIR)
 
 if __name__ == '__main__':
     pyro.clear_param_store()
