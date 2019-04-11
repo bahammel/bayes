@@ -2,10 +2,21 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader, Dataset
 import matplotlib.pyplot as plt
+import os
+import random
 
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
 USE_GPU = torch.cuda.is_available()
 device = torch.device('cuda' if USE_GPU else 'cpu')
+
+
+def seed_everything(seed=1234):
+    random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+
 
 if USE_GPU:
     print("=" * 80)
@@ -15,8 +26,9 @@ if USE_GPU:
 
 class DataSet(Dataset):
 
-    def __init__(self, m, b, epsilon):
-        self.X = x = 10 * np.random.rand(10, 1)
+    def __init__(self, m, b, epsilon, seed):
+        np.random.seed(seed)
+        self.X = x = 10 * np.random.rand(1000, 1)
         self.Y = m * x + b + epsilon * np.random.randn(*x.shape)
 
     def __len__(self):
@@ -27,10 +39,22 @@ class DataSet(Dataset):
         y = self.Y[idx].astype(np.float32)
         return torch.tensor(x, device=device), torch.tensor(y, device=device)
 
+    def save(self, path):
+        data = np.c_[self.X, self.Y]
+        np.save(path, data)
 
-def get_dataset(m=0, b=2, epsilon=3, batch_size=128):
+    def load(self, path):
+        X, Y = np.load(path).T
+        self.X = X[:, None]
+        self.Y = Y[:, None]
+
+
+def get_dataset(m=0, b=2, epsilon=3, batch_size=128, seed=None, data_file=None):
     print(f'Fitting line: y={m}x+{b}')
-    training_set = DataSet(m=m, b=b, epsilon=epsilon)
+    training_set = DataSet(m=m, b=b, epsilon=epsilon, seed=seed)
+    if data_file is not None:
+        training_set.load(data_file)
+
     return DataLoader(training_set, batch_size=batch_size)
 
 

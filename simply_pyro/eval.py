@@ -4,7 +4,7 @@ import pyro
 from pyro.distributions import Delta
 from pyro.infer import EmpiricalMarginal, TracePredictive
 from model import get_pyro_model
-from data import get_dataset
+from data import get_dataset, seed_everything
 import glob
 import matplotlib.pyplot as plt
 from functools import partial
@@ -14,7 +14,17 @@ import numpy as np
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
 USE_GPU = torch.cuda.is_available()
 device = torch.device('cuda' if USE_GPU else 'cpu')
-SAVE_DIR = '/usr/WS1/hammel1/proj/checkpoints/bayes/*'
+
+if os.environ['HOSTNAME'] == 'fractal':
+    MODEL_FILES = '/hdd/bdhammel/checkpoints/bayes/*.params'
+else:
+    MODEL_FILES = '/usr/WS1/hammel1/proj/checkpoints/bayes/*.params'
+
+if os.environ['HOSTNAME'] == 'fractal':
+    DATA_FILES = '/hdd/bdhammel/checkpoints/bayes/*.npy'
+else:
+    DATA_FILES = '/usr/WS1/hammel1/proj/checkpoints/bayes/*.npy'
+
 
 if USE_GPU:
     print("=" * 80)
@@ -60,7 +70,7 @@ def trace_summary(svi, xdata, ydata):
     post_pred = trace_pred.run(x_data, None)
     post_summary = summary(post_pred, sites=['prediction', 'obs'])
     mu = post_summary["prediction"]
-    y = post_summary["obs"]
+    obs = post_summary["obs"]
 
     x = x_data.cpu().numpy().ravel()
     idx = np.argsort(x)
@@ -70,16 +80,16 @@ def trace_summary(svi, xdata, ydata):
         "mu_mean": mu["mean"][idx],
         "mu_perc_5": mu["5%"][idx],
         "mu_perc_95": mu["95%"][idx],
-        "y_mean": y["mean"][idx],
-        "y_perc_5": y["5%"][idx],
-        "y_perc_95": y["95%"][idx],
+        "obs_mean": obs["mean"][idx],
+        "obs_perc_5": obs["5%"][idx],
+        "obs_perc_95": obs["95%"][idx],
         "y_data": y_data.cpu().numpy().ravel()[idx],
     })
 
     plot_mu(df)
     plt.title('trace summary: mu')
-    plot_y(df)
-    plt.title('trace summary: y')
+    plot_obs(df)
+    plt.title('trace summary: obs')
 
 
 def guide_summary(guide, x_data, y_data):
@@ -87,62 +97,71 @@ def guide_summary(guide, x_data, y_data):
     npredicted = np.asarray(
         [model(x_data).data.cpu().numpy()[:, 0] for model in sampled_models]
     )
-    y_mean = np.mean(npredicted, axis=0)
-    y_5q = np.percentile(npredicted, 5, axis=0)
-    y_95q = np.percentile(npredicted, 95, axis=0)
+    pred_mean = np.mean(npredicted, axis=0)
+    pred_5q = np.percentile(npredicted, 5, axis=0)
+    pred_95q = np.percentile(npredicted, 95, axis=0)
 
     x = x_data.cpu().numpy().ravel()
     idx = np.argsort(x)
 
     df = pd.DataFrame({
         "x_data": x[idx],
-        "y_mean": y_mean[idx],
-        "y_perc_5": y_5q[idx],
-        "y_perc_95": y_95q[idx],
+        "mu_mean": pred_mean[idx],
+        "mu_perc_5": pred_5q[idx],
+        "mu_perc_95": pred_95q[idx],
         "y_data": y_data.cpu().numpy().ravel()[idx],
     })
 
-    plot_y(df)
+    plot_mu(df)
     plt.title('Guide summary')
 
 
 def plot_mu(df):
     plt.figure()
-    plt.plot(df['x_data'], df['y_data'], 'o', color='C2', label='true')
-    plt.plot(df['x_data'], df['mu_mean'], color='C3', label='mu', linestyle='dashed')
+    plt.plot(df['x_data'], df['y_data'], 'o', color='C0', label='true')
+    plt.plot(df['x_data'], df['mu_mean'], color='C1', label='mu')
     plt.fill_between(df["x_data"],
                      df["mu_perc_5"],
                      df["mu_perc_95"],
-                     color='C3',
-                     alpha=0.1)
+                     color='C1',
+                     alpha=0.5)
     plt.legend()
 
 
-def plot_y(df):
-    plt.figure(1)
+def plot_obs(df):
+    plt.figure()
     plt.plot(df['x_data'], df['y_data'], 'o', color='C0', label='true')
-    plt.plot(df['x_data'], df['y_mean'], color='C1', label='y')
+    plt.plot(df['x_data'], df['obs_mean'], color='C1', label='obs')
     plt.fill_between(df["x_data"],
-                     df["y_perc_5"],
-                     df["y_perc_95"],
+                     df["obs_perc_5"],
+                     df["obs_perc_95"],
                      color='C1',
-                     alpha=0.1)
+                     alpha=0.5)
     plt.legend()
 
 
 if __name__ == '__main__':
-    svi, model, guide = get_pyro_model(return_all=True)
-    training_generator = iter(get_dataset())
-    x_data, y_data = next(training_generator)
+    seed_everything()
 
-    saved_param_files = glob.glob(SAVE_DIR)
-    saved_param_files.sort(key=os.path.getmtime)
+    svi, model, guide = get_pyro_model(return_all=True)
+
+    saved_param_files = glob.glob(MODEL_FILES)
+    saved_param_files.sort(key=os.path.getmtime, reverse=True)
     print(*saved_param_files, sep='\n')
-    idx = int(input("file?> "))
+    idx = int(input("file? (0 for most recent exp) > "))
     pyro.get_param_store().load(saved_param_files[idx])
+
+    saved_data_files = glob.glob(DATA_FILES)
+    saved_data_files.sort(key=os.path.getmtime, reverse=True)
+    print(*saved_data_files, sep='\n')
+    idx = int(input("file? (0 for most recent data) > "))
+    training_generator = iter(get_dataset(
+        batch_size=1000, data_file=saved_data_files[idx]
+    ))
+    x_data, y_data = next(training_generator)
 
     for name, value in pyro.get_param_store().items():
         print(name, pyro.param(name))
 
     trace_summary(svi, x_data, y_data)
-    guide_summary(guide, x_data, y_data)
+    # guide_summary(guide, x_data, y_data)
