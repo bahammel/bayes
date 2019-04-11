@@ -9,8 +9,7 @@ from datetime import datetime
 experiment_id = datetime.now().isoformat()
 
 EPOCHS = 50
-SAVE_DIR = f'/hdd/bdhammel/checkpoints/bayes/{experiment_id}'
-
+SAVE_DIR = f'/usr/WS1/hammel1/proj/checkpoints/bayes/{experiment_id}'
 
 def train_nn(training_generator):
     regression_model = RegressionModel(p=1)

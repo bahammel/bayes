@@ -16,7 +16,7 @@ if USE_GPU:
 class DataSet(Dataset):
 
     def __init__(self, m, b, epsilon):
-        self.X = x = 10 * np.random.rand(10000, 1)
+        self.X = x = 10 * np.random.rand(6, 1)
         self.Y = m * x + b + epsilon * np.random.randn(*x.shape)
 
     def __len__(self):
@@ -28,7 +28,7 @@ class DataSet(Dataset):
         return torch.tensor(x, device=device), torch.tensor(y, device=device)
 
 
-def get_dataset(m=2.5, b=1.2, epsilon=3):
+def get_dataset(m=0, b=2, epsilon=3):
     print(f'Fitting line: y={m}x+{b}')
     training_set = DataSet(m=m, b=b, epsilon=epsilon)
     return DataLoader(training_set, batch_size=512)

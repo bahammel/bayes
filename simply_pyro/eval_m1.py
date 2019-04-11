@@ -76,10 +76,10 @@ def trace_summary(svi, xdata, ydata):
         "y_data": y_data.cpu().numpy().ravel()[idx],
     })
 
-    plot_mu(df)
-    plt.title('trace summary: mu')
-    plot_y(df)
-    plt.title('trace summary: y')
+    plot_mu(df,'solid','C0','C1','o','mu_TRACE')
+    #plt.title('trace summary: mu')
+    plot_y(df,'solid','C0','C4','o','y_TRACE')
+    #plt.title('trace summary: y')
 
 
 def guide_summary(guide, x_data, y_data):
@@ -101,31 +101,30 @@ def guide_summary(guide, x_data, y_data):
         "y_perc_95": y_95q[idx],
         "y_data": y_data.cpu().numpy().ravel()[idx],
     })
+    plot_y(df,'dashed','C2','C3','+r','y_GUIDE')
+    plt.title('Summary')
 
-    plot_y(df)
-    plt.title('Guide summary')
 
-
-def plot_mu(df):
+def plot_mu(df,LS,COL1,COL2,MARK,LAB):
     plt.figure()
-    plt.plot(df['x_data'], df['y_data'], 'o', color='C2', label='true')
-    plt.plot(df['x_data'], df['mu_mean'], color='C3', label='mu', linestyle='dashed')
+    plt.plot(df['x_data'], df['y_data'], MARK, color=COL1, label='true')
+    plt.plot(df['x_data'], df['mu_mean'], color=COL2, label=LAB, linestyle=LS)
     plt.fill_between(df["x_data"],
                      df["mu_perc_5"],
                      df["mu_perc_95"],
-                     color='C3',
+                     color=COL2,
                      alpha=0.1)
     plt.legend()
 
 
-def plot_y(df):
+def plot_y(df,LS,COL1,COL2,MARK,LAB):
     plt.figure(1)
-    plt.plot(df['x_data'], df['y_data'], 'o', color='C0', label='true')
-    plt.plot(df['x_data'], df['y_mean'], color='C1', label='y')
+    plt.plot(df['x_data'], df['y_data'], MARK, color=COL1, label='true')
+    plt.plot(df['x_data'], df['y_mean'], color=COL2, label=LAB, linestyle=LS)
     plt.fill_between(df["x_data"],
                      df["y_perc_5"],
                      df["y_perc_95"],
-                     color='C1',
+                     color=COL2,
                      alpha=0.1)
     plt.legend()
 
