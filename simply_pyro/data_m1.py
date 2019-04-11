@@ -16,7 +16,7 @@ if USE_GPU:
 class DataSet(Dataset):
 
     def __init__(self, m, b, epsilon):
-        self.X = x = 10 * np.random.rand(100, 1)
+        self.X = x = 10 * np.random.rand(10, 1)
         self.Y = m * x + b + epsilon * np.random.randn(*x.shape)
 
     def __len__(self):

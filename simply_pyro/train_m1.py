@@ -48,6 +48,7 @@ def train_bayes(training_generator):
 
     save_model = input("save model > ")
     if save_model.lower().startswith('y'):
+        print("Saving to :", SAVE_DIR)
         pyro.get_param_store().save(SAVE_DIR)
         torch.save([x_data, y_data], DATA_DIR)
 
