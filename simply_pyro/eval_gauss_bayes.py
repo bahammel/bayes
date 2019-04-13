@@ -4,7 +4,7 @@ import pyro
 from pyro.distributions import Delta
 from pyro.infer import EmpiricalMarginal, TracePredictive
 from model import get_pyro_model
-from data import get_dataset, seed_everything
+from data_gauss_nn import get_dataset
 import glob
 import matplotlib.pyplot as plt
 from functools import partial
@@ -146,7 +146,6 @@ def plot_obs(df):
 
 
 if __name__ == '__main__':
-    seed_everything()
 
     svi, model, guide = get_pyro_model(return_all=True)
 

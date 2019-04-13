@@ -26,10 +26,18 @@ if USE_GPU:
 
 class DataSet(Dataset):
 
-    def __init__(self, m, b, epsilon, seed):
+    def __init__(self, mu, seed):
+        hu = np.linspace(1, 10, 100)
         np.random.seed(seed)
-        self.X = x = 10 * np.random.rand(10000, 1)
-        self.Y = m * x + b + epsilon * np.random.randn(*x.shape)
+        #shift = np.random.choice(np.linspace(-1, 1, 5000))
+        shift = np.random.rand(5000, 1) - 1.0
+        #mu = np.random.choice(np.linspace(5.8, 6.2, 2))
+        self.X = x = mu * (1. + shift/1.e2)  
+        std = 0.2
+        #std = np.random.choice(np.linspace(2, 3, 2))
+        amp = 0.5
+        #amp = np.random.choice(np.linspace(0.1, 1.0,20))
+        self.Y = amp * (1.0) / (std*np.sqrt(2.*np.pi)) * np.exp(-((hu - mu)**2./(2.* std**2.))**1.0)
 
     def __len__(self):
         return len(self.X)
@@ -49,9 +57,9 @@ class DataSet(Dataset):
         self.Y = Y[:, None]
 
 
-def get_dataset(m=0, b=2, epsilon=3, batch_size=128, seed=None, data_file=None):
-    print(f'Fitting line: y={m}x+{b}')
-    training_set = DataSet(m=m, b=b, epsilon=epsilon, seed=seed)
+def get_dataset(mu=6.0, batch_size=128, seed=None, data_file=None):
+    print(f'Fitting Gaussian with: mu = {mu}')
+    training_set = DataSet(mu=mu,seed=seed)
     if data_file is not None:
         training_set.load(data_file)
 

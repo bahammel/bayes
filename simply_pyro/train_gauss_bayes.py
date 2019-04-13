@@ -1,8 +1,8 @@
 import pyro
 import numpy as np
-from model import RegressionModel, get_pyro_model
+from model_bayes_nn import NN_Model, get_pyro_model
 import torch
-from data import get_dataset, seed_everything
+from data_gauss_bayes import get_dataset, seed_everything
 from tqdm import tqdm
 from datetime import datetime
 import os
