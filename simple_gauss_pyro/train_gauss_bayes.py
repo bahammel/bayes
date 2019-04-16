@@ -1,14 +1,17 @@
 import pyro
 import numpy as np
+import matplotlib.pyplot as plt
+import torch.nn.functional as F
 from model_bayes_nn import NN_Model, get_pyro_model
 import torch
 from data_gauss_bayes import get_dataset, seed_everything
 from tqdm import tqdm
 from datetime import datetime
 import os
+import pdb
+#pdb.set_trace()
 
-
-EPOCHS = 500
+EPOCHS = 1000
 
 
 def train_nn(training_generator):
@@ -41,9 +44,13 @@ def train_bayes(training_generator):
             losses.append(svi.step(x_data, y_data))
         print(np.mean(losses))
 
+    plt.plot(losses)
+    plt.title("ELBO")
+    plt.xlabel("step")
+    plt.ylabel("Epoch loss")
+
     for name, value in pyro.get_param_store().items():
         print(name, pyro.param(name))
-
 
 def save():
     save_model = input("save model > ")

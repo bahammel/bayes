@@ -4,7 +4,7 @@ import pyro
 from pyro.distributions import Delta
 from pyro.infer import EmpiricalMarginal, TracePredictive
 from model import get_pyro_model
-from data_gauss_nn import get_dataset
+from data_gauss_bayes import get_dataset
 import glob
 import matplotlib.pyplot as plt
 from functools import partial
