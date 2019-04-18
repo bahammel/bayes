@@ -1,6 +1,7 @@
 import pyro
 import numpy as np
-from model import RegressionModel, get_pyro_model
+from model_m3 import RegressionModel, get_pyro_model
+import matplotlib.pyplot as plt
 import torch
 from data import get_dataset, seed_everything
 from tqdm import tqdm
@@ -8,7 +9,7 @@ from datetime import datetime
 import os
 
 
-EPOCHS = 500
+EPOCHS = 350
 
 
 def train_nn(training_generator):
@@ -35,11 +36,20 @@ def train_nn(training_generator):
 def train_bayes(training_generator):
     svi = get_pyro_model()
 
+    loss_hist = []
     for e in range(EPOCHS):
         losses = []
         for x_data, y_data in tqdm(training_generator):
             losses.append(svi.step(x_data, y_data))
-        print(np.mean(losses))
+        loss_hist.append(np.mean(losses))
+        print(f"epoch {e}/{EPOCHS} :", loss_hist[-1])
+
+    plt.plot(loss_hist)
+    plt.yscale('log')
+    plt.title("ELBO")
+    plt.xlabel("step")
+    plt.ylabel("Epoch loss")
+
 
     for name, value in pyro.get_param_store().items():
         print(name, pyro.param(name))

@@ -79,6 +79,7 @@ def trace_summary(svi, xdata, ydata):
     df = pd.DataFrame({
         "x_data": x[idx],
         "y_data": y_data.cpu().numpy().ravel()[idx],
+        #"obs": obs[idx],
         "mu_mean": mu["mean"][idx],
         "mu_std": mu["std"][idx],
         "mu_perc_5": mu["5%"][idx],
@@ -96,8 +97,10 @@ def trace_summary(svi, xdata, ydata):
     plot_obs(df)
     plt.title('trace summary: obs')
 
+    #import pudb; pudb.set_trace()
 
 def guide_summary(guide, x_data, y_data):
+    #import pudb; pudb.set_trace()
     sampled_models = [guide(None, None) for _ in range(10000)]
     npredicted = np.asarray(
         [model(x_data).data.cpu().numpy()[:, 0] for model in sampled_models]
@@ -136,7 +139,8 @@ def plot_mu(df):
 def plot_obs(df):
     plt.figure()
     plt.plot(df['x_data'], df['y_data'], 'o', color='C0', label='true')
-    plt.plot(df['x_data'], df['obs_mean'], color='C1', label='obs')
+    #plt.plot(df['x_data'], df['obs'], 'o', color='C5', label='obs')
+    plt.plot(df['x_data'], df['obs_mean'], color='C1', label='obs_mean')
     plt.fill_between(df["x_data"],
                      df["obs_perc_5"],
                      df["obs_perc_95"],

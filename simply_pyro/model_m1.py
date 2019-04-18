@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch
-from pyro.distributions import Normal
+from pyro.distributions import Normal, Uniform
 from pyro.contrib.autoguide import AutoDiagonalNormal
 from pyro.optim import Adam
 from pyro.infer import SVI, Trace_ELBO
@@ -30,21 +30,28 @@ def model_fn(regression_model):
             'linear.bias': Normal(
                 loc=torch.zeros_like(regression_model.linear.bias),
                 scale=torch.ones_like(regression_model.linear.bias)
+            ),
+            'sigma': Uniform(
+                loc=torch.zeros_like(regression_model.linear.bias),
+                scale=2.0*torch.ones_like(regression_model.linear.bias)
             )
         }
-
         # lift module parameters to random variables sampled from the priors
         lifted_module = pyro.random_module(
             "module", regression_model, priors
         )
         # sample a nn (which also samples w and b)
         lifted_reg_model = lifted_module()
-
+        with pyro.plate("map", len(x_data)):
+            # run the nn forward on data
+            prediction_mean = lifted_reg_model(x_data)
+            # condition on the observed data
+            pyro.sample("obs",
+                        Normal(prediction_mean, sigma),
+                        obs=y_data)
+            return prediction_mean
         # run the nn forward on data
         prediction_mean = lifted_reg_model(x_data)
-
-        # condition on the observed data
-        pyro.sample("obs", Normal(prediction_mean, 10), obs=y_data)
 
         return prediction_mean
 
@@ -82,8 +89,11 @@ def get_pyro_model(return_all=False):
     regression_model = RegressionModel(p=1)
     model = model_fn(regression_model)
     guide = guide_fn(regression_model)
-    optimizer = Adam({'lr': 0.05})
-    svi = SVI(model, guide, optimizer, loss=Trace_ELBO(), num_samples=1000)
+    AdamArgs = { 'lr': 1e-2 }
+    optimizer = torch.optim.Adam
+    scheduler = pyro.optim.ExponentialLR({'optimizer': optimizer, 'optim_args': AdamArgs, 'gamma': 0.9995 })
+    svi = SVI(model, guide, scheduler, loss=Trace_ELBO(), num_samples=1000)
+    
     if return_all:
         return svi, model, guide
     else:

@@ -49,7 +49,7 @@ class DataSet(Dataset):
         self.Y = Y[:, None]
 
 
-def get_dataset(m=0, b=2, epsilon=3, batch_size=128, seed=None, data_file=None):
+def get_dataset(m=0, b=2, epsilon=0.1, batch_size=128, seed=None, data_file=None):
     print(f'Fitting line: y={m}x+{b}')
     training_set = DataSet(m=m, b=b, epsilon=epsilon, seed=seed)
     if data_file is not None:
@@ -59,7 +59,7 @@ def get_dataset(m=0, b=2, epsilon=3, batch_size=128, seed=None, data_file=None):
 
 
 if __name__ == '__main__':
-    training_set = DataSet(0, 2, 3)
+    training_set = DataSet(0, 2, 0.1)
     training_generator = DataLoader(training_set, batch_size=50, shuffle=True)
 
     for x, y in training_generator:
