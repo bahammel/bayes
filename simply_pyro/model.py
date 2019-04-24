@@ -44,7 +44,7 @@ def model_fn(regression_model):
         prediction_mean = lifted_reg_model(x_data)
 
         # condition on the observed data
-        pyro.sample("obs", Normal(prediction_mean, 10), obs=y_data)
+        pyro.sample("obs", Normal(prediction_mean, 0.2), obs=y_data)
 
         return prediction_mean
 

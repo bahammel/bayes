@@ -1,6 +1,6 @@
 import pyro
 import numpy as np
-from model_m3 import RegressionModel, get_pyro_model
+from model import RegressionModel, get_pyro_model
 import matplotlib.pyplot as plt
 import torch
 from data import get_dataset, seed_everything
@@ -9,7 +9,7 @@ from datetime import datetime
 import os
 
 
-EPOCHS = 350
+EPOCHS = 300
 
 
 def train_nn(training_generator):

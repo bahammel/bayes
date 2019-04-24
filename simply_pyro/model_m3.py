@@ -33,14 +33,14 @@ def model_fn(regression_model):
                 scale=torch.ones_like(regression_model.linear.bias)
             )
         }
-        sigma = pyro.sample("sigma", Uniform(0., 10.))
+        sigma = pyro.sample("sigma", Uniform(0.0, 20.0))
         # lift module parameters to random variables sampled from the priors
         lifted_module = pyro.random_module(
             "module", regression_model, priors
         )
         # sample a nn (which also samples w and b)
         lifted_reg_model = lifted_module()
-        with pyro.plate("map", len(x_data)):
+        with pyro.plate("data", len(x_data)):
             # run the nn forward on data
             prediction_mean = lifted_reg_model(x_data)
             # condition on the observed data
