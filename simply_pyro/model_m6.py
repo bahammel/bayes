@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch
-from pyro.distributions import Normal
+from pyro.distributions import Normal, Uniform
 from pyro.contrib.autoguide import AutoDiagonalNormal
 from pyro.optim import Adam
 from pyro.infer import SVI, Trace_ELBO
@@ -26,12 +26,14 @@ def model_fn(regression_model):
             'linear.weight': Normal(
                 loc=torch.zeros_like(regression_model.linear.weight),
                 scale=torch.ones_like(regression_model.linear.weight)
-            ),
+            ).to_event(1),
             'linear.bias': Normal(
                 loc=torch.zeros_like(regression_model.linear.bias),
                 scale=torch.ones_like(regression_model.linear.bias)
-            )
+            ).to_event(1)
         }
+
+        scale = pyro.sample('sigma', Uniform(0, 200))
 
         # lift module parameters to random variables sampled from the priors
         lifted_module = pyro.random_module(
@@ -40,13 +42,17 @@ def model_fn(regression_model):
         # sample a nn (which also samples w and b)
         lifted_reg_model = lifted_module()
 
-        # run the nn forward on data
-        prediction_mean = lifted_reg_model(x_data)
+        with pyro.plate("map", len(x_data)):
 
-        # condition on the observed data
-        pyro.sample("obs", Normal(prediction_mean, 2), obs=y_data)
+            # run the nn forward on data
+            prediction_mean = lifted_reg_model(x_data).squeeze(-1)
 
-        return prediction_mean
+            # condition on the observed data
+            pyro.sample("obs",
+                        Normal(prediction_mean, scale),
+                        obs=y_data)
+
+            return prediction_mean
 
     return _model
 
@@ -81,7 +87,8 @@ def guide_fn(regression_model):
 def get_pyro_model(return_all=False):
     regression_model = RegressionModel(p=1)
     model = model_fn(regression_model)
-    guide = guide_fn(regression_model)
+    guide = AutoDiagonalNormal(model)
+    # guide = guide_fn(regression_model)
     optimizer = Adam({'lr': 0.05})
     svi = SVI(model, guide, optimizer, loss=Trace_ELBO(), num_samples=1000)
     if return_all:

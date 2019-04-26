@@ -43,22 +43,17 @@ class DataSet(Dataset):
         return len(self.X)
 
     def __getitem__(self, idx):
-        #print(self.X.shape)
-        #print(self.Y.shape)
         x = self.X[idx].astype(np.float32)
         y = self.Y[idx].astype(np.float32)
         return torch.tensor(x, device=device), torch.tensor(y, device=device)
 
     def save(self, path):
-        data = np.c_[self.X, self.Y]
-        np.save(path, data)
+        np.save(path, {'X':self.X, 'Y':self.Y})
 
     def load(self, path):
-        X, Y = np.load(path).T
-        #print(X.shape)
-        #print(Y.shape)
-        self.X = X[:, None]
-        self.Y = Y[:, None]
+        data = np.load(path)
+        self.X = data.item()['X']
+        self.Y = data.item()['Y']
 
 
 def get_dataset(mu=0.6, std=0.2, amp=0.1, batch_size=128, seed=None, data_file=None):
@@ -80,8 +75,8 @@ def get_dataset(mu=0.6, std=0.2, amp=0.1, batch_size=128, seed=None, data_file=N
 
     if data_file is not None:
         training_set.load(data_file)
-        print(X.shape)
-        print(Y.shape)
+        print(training_set.X.shape)
+        print(training_set.Y.shape)
 
     return DataLoader(training_set, batch_size=batch_size)
 

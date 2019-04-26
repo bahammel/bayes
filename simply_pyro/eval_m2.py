@@ -3,8 +3,8 @@ import torch
 import pyro
 from pyro.distributions import Delta
 from pyro.infer import EmpiricalMarginal, TracePredictive
-from model_bayes_nn import get_pyro_model
-from data_gauss_bayes import get_dataset
+from model import get_pyro_model
+from data import get_dataset, seed_everything
 import glob
 import matplotlib.pyplot as plt
 from functools import partial
@@ -55,36 +55,42 @@ def summary(traces, sites):
     return site_stats
 
 
-def wrapped_model(x_data, y_data):
-    pyro.sample("prediction", Delta(model(x_data, y_data)))
+def wrapped_model_fn(model):
+    def _wrapped_model(x_data, y_data):
+        pyro.sample("prediction", Delta(model(x_data, y_data)))
+    return _wrapped_model
 
 
-def trace_summary(svi, xdata, ydata):
-
-    # import pudb; pudb.set_trace()
+def trace_summary(svi, model, x_data, y_data):
 
     posterior = svi.run(x_data, y_data)
+    wrapped_model = wrapped_model_fn(model)
 
     # posterior predictive distribution we can get samples from
     trace_pred = TracePredictive(wrapped_model,
                                  posterior,
-                                 num_samples=1000)
+                                 num_samples=10000)
     post_pred = trace_pred.run(x_data, None)
     post_summary = summary(post_pred, sites=['prediction', 'obs'])
     mu = post_summary["prediction"]
     obs = post_summary["obs"]
 
+
+    x = x_data.cpu().numpy().ravel()
+    idx = np.argsort(x)
+
     df = pd.DataFrame({
-        # "x_data": x_data.cpu().numpy(),
-        "y_data": y_data.cpu().numpy()[..., 0],
-        "mu_mean": mu["mean"],
-        "mu_std": mu["std"],
-        "mu_perc_5": mu["5%"],
-        "mu_perc_95": mu["95%"],
-        "obs_mean": obs["mean"],
-        "obs_std": obs["std"],
-        "obs_perc_5": obs["5%"],
-        "obs_perc_95": obs["95%"],
+        "x_data": x[idx],
+        "y_data": y_data.cpu().numpy().ravel()[idx],
+        #"obs": obs[idx],
+        "mu_mean": mu["mean"][idx],
+        "mu_std": mu["std"][idx],
+        "mu_perc_5": mu["5%"][idx],
+        "mu_perc_95": mu["95%"][idx],
+        "obs_mean": obs["mean"][idx],
+        "obs_std": obs["std"][idx],
+        "obs_perc_5": obs["5%"][idx],
+        "obs_perc_95": obs["95%"][idx],
     })
 
     print(df)
@@ -94,8 +100,10 @@ def trace_summary(svi, xdata, ydata):
     plot_obs(df)
     plt.title('trace summary: obs')
 
+    #import pudb; pudb.set_trace()
 
 def guide_summary(guide, x_data, y_data):
+    #import pudb; pudb.set_trace()
     sampled_models = [guide(None, None) for _ in range(10000)]
     npredicted = np.asarray(
         [model(x_data).data.cpu().numpy()[:, 0] for model in sampled_models]
@@ -134,7 +142,8 @@ def plot_mu(df):
 def plot_obs(df):
     plt.figure()
     plt.plot(df['x_data'], df['y_data'], 'o', color='C0', label='true')
-    plt.plot(df['x_data'], df['obs_mean'], color='C1', label='obs')
+    #plt.plot(df['x_data'], df['obs'], 'o', color='C5', label='obs')
+    plt.plot(df['x_data'], df['obs_mean'], color='C1', label='obs_mean')
     plt.fill_between(df["x_data"],
                      df["obs_perc_5"],
                      df["obs_perc_95"],
@@ -144,6 +153,7 @@ def plot_obs(df):
 
 
 if __name__ == '__main__':
+    seed_everything()
 
     svi, model, guide = get_pyro_model(return_all=True)
 
@@ -165,5 +175,5 @@ if __name__ == '__main__':
     for name, value in pyro.get_param_store().items():
         print(name, pyro.param(name))
 
-    trace_summary(svi, x_data, y_data)
+    trace_summary(svi, model, x_data, y_data)
     guide_summary(guide, x_data, y_data)

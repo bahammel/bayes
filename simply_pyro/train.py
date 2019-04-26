@@ -1,15 +1,16 @@
 import pyro
 import numpy as np
-from model import RegressionModel, get_pyro_model
+from model_m6 import RegressionModel, get_pyro_model
 import matplotlib.pyplot as plt
 import torch
 from data import get_dataset, seed_everything
+from eval_m2 import trace_summary
 from tqdm import tqdm
 from datetime import datetime
 import os
 
 
-EPOCHS = 300
+EPOCHS = 50
 
 
 def train_nn(training_generator):
@@ -34,7 +35,7 @@ def train_nn(training_generator):
 
 
 def train_bayes(training_generator):
-    svi = get_pyro_model()
+    svi, model, guide = get_pyro_model(return_all=True)
 
     loss_hist = []
     for e in range(EPOCHS):
@@ -50,6 +51,7 @@ def train_bayes(training_generator):
     plt.xlabel("step")
     plt.ylabel("Epoch loss")
 
+    trace_summary(svi, model, x_data, y_data)
 
     for name, value in pyro.get_param_store().items():
         print(name, pyro.param(name))

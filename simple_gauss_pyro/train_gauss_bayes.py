@@ -11,7 +11,7 @@ import os
 import pdb
 #pdb.set_trace()
 
-EPOCHS = 1000
+EPOCHS = 2000
 
 
 def train_nn(training_generator):
@@ -38,13 +38,15 @@ def train_nn(training_generator):
 def train_bayes(training_generator):
     svi = get_pyro_model()
 
+    loss_hist = []
     for e in range(EPOCHS):
         losses = []
         for x_data, y_data in tqdm(training_generator):
             losses.append(svi.step(x_data, y_data))
-        print(np.mean(losses))
+        loss_hist.append(np.mean(losses))
+        print(f"epoch {e}/{EPOCHS} :", loss_hist[-1])
 
-    plt.plot(losses)
+    plt.plot(loss_hist)
     plt.title("ELBO")
     plt.xlabel("step")
     plt.ylabel("Epoch loss")
@@ -72,6 +74,8 @@ def save():
         if save_data.lower().startswith('y'):
             dataset = training_generator.dataset
             dataset.save(SAVE_PATH)
+    else:
+        print(f"input was {save_model} not saving model")
 
 
 if __name__ == '__main__':

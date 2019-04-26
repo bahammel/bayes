@@ -25,7 +25,7 @@ smoke_test = ('CI' in os.environ)
 pyro.enable_validation(True)
 
 num_of_cases = 100
-epsilon = 0.1
+epsilon = 10
 b = 1.0
 x = np.linspace(1, 10, 20)
 X = []
@@ -139,7 +139,7 @@ def model(x_data, y_data):
     w_prior = Normal(torch.zeros(1, 2), torch.ones(1, 2)).to_event(1)
     b_prior = Normal(torch.tensor([[8.]]), torch.tensor([[1000.]])).to_event(1)
     f_prior = Normal(0., 1.)
-    priors = {'linear.weight': w_prior, 'linear.bias': b_prior, 'factor': f_prior}
+    priors = {'linear.weight': w_prior, 'linear.bias': b_prior} # , 'factor': f_prior}
     scale = pyro.sample("sigma", Uniform(0., 200.))
     # lift module parameters to random variables sampled from the priors
     lifted_module = pyro.random_module("module", regression_model, priors)

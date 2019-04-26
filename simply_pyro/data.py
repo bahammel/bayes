@@ -49,7 +49,7 @@ class DataSet(Dataset):
         self.Y = Y[:, None]
 
 
-def get_dataset(m=0, b=5, epsilon=0.1, batch_size=128, seed=None, data_file=None):
+def get_dataset(m=0, b=1.0, epsilon=0.1, batch_size=128, seed=None, data_file=None):
     print(f'Fitting line: y={m}x+{b}')
     training_set = DataSet(m=m, b=b, epsilon=epsilon, seed=seed)
     if data_file is not None:
