@@ -72,6 +72,7 @@ def save():
 
         print("Saving to :", SAVE_PATH)
         pyro.get_param_store().save(SAVE_PATH + '.params')
+        #torch.save(model, os.path.join(SAVE_PATH + '.model'))
 
         save_data = input("save data > ")
         if save_data.lower().startswith('y'):

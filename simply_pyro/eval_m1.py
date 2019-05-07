@@ -4,7 +4,7 @@ import pyro
 from pyro.distributions import Delta
 from pyro.infer import EmpiricalMarginal, TracePredictive
 from model import get_pyro_model
-from data_gauss_nn import get_dataset
+#from data_gauss_nn import get_dataset
 import glob
 import matplotlib.pyplot as plt
 from functools import partial
@@ -15,7 +15,7 @@ torch.set_default_tensor_type('torch.cuda.FloatTensor')
 USE_GPU = torch.cuda.is_available()
 device = torch.device('cuda' if USE_GPU else 'cpu')
 #SAVE_DIR = '/usr/WS1/hammel1/proj/checkpoints/bayes/*'
-exp_id = '2019-04-11T09:30:21.884475' 
+exp_id = '2019-04-26T17:32:52.356248'
 SAVE_DIR = f'/usr/WS1/hammel1/proj/checkpoints/bayes/{exp_id}'
 DATA_DIR = f'/usr/WS1/hammel1/proj/data/{exp_id}'
 

@@ -28,12 +28,12 @@ def model_fn(regression_model):
                 scale=torch.ones_like(regression_model.linear.weight)
             ).to_event(1),
             'linear.bias': Normal(
-                loc=torch.zeros_like(regression_model.linear.bias),
-                scale=torch.ones_like(regression_model.linear.bias)
+                loc=100*torch.ones_like(regression_model.linear.bias),
+                scale=100*torch.ones_like(regression_model.linear.bias)
             ).to_event(1)
         }
 
-        scale = pyro.sample('sigma', Uniform(0, 200))
+        scale = pyro.sample('sigma', Uniform(0, 2000))
 
         # lift module parameters to random variables sampled from the priors
         lifted_module = pyro.random_module(
@@ -73,6 +73,9 @@ def guide_fn(regression_model):
         b_mu_param = pyro.param("b_mu", b_mu)
         b_sigma_param = softplus(pyro.param("b_sigma", b_sigma))
 
+        sigma_loc = pyro.param('sigma_loc', torch.tensor(1.),
+                             constraint=constraints.positive)
+        sigma = pyro.sample("sigma", Normal(sigma_loc, torch.tensor(0.05)))
         priors = {
             'linear.weight': Normal(loc=w_mu_param, scale=w_sigma_param),
             'linear.bias': Normal(loc=b_mu_param, scale=b_sigma_param)
