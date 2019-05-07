@@ -1,17 +1,26 @@
 import pyro
 import numpy as np
+from model_bayes_nn_m1 import NN_Model, get_pyro_model
 import matplotlib.pyplot as plt
-import torch.nn.functional as F
-from model_bayes_nn import NN_Model, get_pyro_model
 import torch
 from data_gauss_bayes import get_dataset, seed_everything
+from eval_gauss_bayes_m2 import trace_summary
 from tqdm import tqdm
 from datetime import datetime
 import os
 import pdb
+import torch.nn.functional as F
+import pyro.poutine as poutine
+
+# enable validation (e.g. validate parameters of distributions)
+assert pyro.__version__.startswith('0.3.1')
+# pyro.enable_validation(True)
+
+
+
 #pdb.set_trace()
 
-EPOCHS = 2000
+EPOCHS = 1000
 
 
 def train_nn(training_generator):
@@ -36,20 +45,31 @@ def train_nn(training_generator):
 
 
 def train_bayes(training_generator):
-    svi = get_pyro_model()
+    svi, model, guide = get_pyro_model(return_all=True)
+
+
 
     loss_hist = []
     for e in range(EPOCHS):
         losses = []
         for x_data, y_data in tqdm(training_generator):
             losses.append(svi.step(x_data, y_data))
+
+        trace = poutine.trace(poutine.enum(model, first_available_dim=-3)).get_trace(x_data, y_data)
+        trace.compute_log_prob()  # optional, but allows printing of log_prob shapes
+        print(trace.format_shapes())
+
         loss_hist.append(np.mean(losses))
         print(f"epoch {e}/{EPOCHS} :", loss_hist[-1])
 
+
     plt.plot(loss_hist)
+    plt.yscale('log')
     plt.title("ELBO")
     plt.xlabel("step")
     plt.ylabel("Epoch loss")
+
+    trace_summary(svi, model, x_data, y_data)
 
     for name, value in pyro.get_param_store().items():
         print(name, pyro.param(name))
@@ -81,7 +101,9 @@ def save():
 if __name__ == '__main__':
     seed_everything()
     pyro.clear_param_store()
-    training_generator = get_dataset(batch_size=1028)
+    training_generator = get_dataset(batch_size=256)
+
+    #evaluate()
     # train_nn(training_generator)
     train_bayes(training_generator)
     save()

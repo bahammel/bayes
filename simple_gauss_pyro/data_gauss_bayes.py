@@ -29,12 +29,12 @@ if USE_GPU:
 class DataSet(Dataset):
 
     def __init__(self, mu, std, amp, seed):
-        hu = np.linspace(1, 10, 100)
+        hu = np.linspace(1, 10, 100)/10.
         np.random.seed(seed)
         #shift = np.random.choice(np.linspace(-1, 1, 5000))
-        shift = np.random.rand(20000, 1) - 1.0
+        shift = np.random.rand(5000, 1) - 1.0
         #mu = np.random.choice(np.linspace(5.8, 6.2, 2))
-        self.Y = y = 10.0*mu * (1. + shift/1.e2)  
+        self.Y = y = mu * (1. + shift/1.e2)  
         #std = np.random.choice(np.linspace(2, 3, 2))
         #amp = np.random.choice(np.linspace(0.1, 1.0,20))
         self.X = amp * (1.0) / (std*np.sqrt(2.*np.pi)) * np.exp(-((hu - y)**2./(2.* std**2.))**1.0)

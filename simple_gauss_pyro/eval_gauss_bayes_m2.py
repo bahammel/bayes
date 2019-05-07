@@ -55,15 +55,16 @@ def summary(traces, sites):
     return site_stats
 
 
-def wrapped_model(x_data, y_data):
-    pyro.sample("prediction", Delta(model(x_data, y_data)))
+def wrapped_model_fn(model):
+    def _wrapped_model(x_data, y_data):
+        pyro.sample("prediction", Delta(model(x_data, y_data)))
+    return _wrapped_model
 
 
-def trace_summary(svi, xdata, ydata):
-
-    # import pudb; pudb.set_trace()
+def trace_summary(svi, model, x_data, y_data):
 
     posterior = svi.run(x_data, y_data)
+    wrapped_model = wrapped_model_fn(model)
 
     # posterior predictive distribution we can get samples from
     trace_pred = TracePredictive(wrapped_model,
@@ -74,17 +75,29 @@ def trace_summary(svi, xdata, ydata):
     mu = post_summary["prediction"]
     obs = post_summary["obs"]
 
+
+    #import pudb; pudb.set_trace()
+
+    #x = x_data.cpu().numpy().ravel()
+    #idx = np.argsort(x)
+
+    y = y_data.cpu().numpy().ravel()
+    idx = np.argsort(y)
+
     df = pd.DataFrame({
-        # "x_data": x_data.cpu().numpy(),
-        "y_data": y_data.cpu().numpy()[..., 0],
-        "mu_mean": mu["mean"],
-        "mu_std": mu["std"],
-        "mu_perc_5": mu["5%"],
-        "mu_perc_95": mu["95%"],
-        "obs_mean": obs["mean"],
-        "obs_std": obs["std"],
-        "obs_perc_5": obs["5%"],
-        "obs_perc_95": obs["95%"],
+        #"x_data": x[idx],
+        #"y_data": y_data.cpu().numpy().ravel()[idx],
+        "Index": np.linspace(0, np.size(y), np.size(y)),
+        "y_data": y[idx],
+        #"obs": obs[idx],
+        "mu_mean": mu["mean"][idx],
+        "mu_std": mu["std"][idx],
+        "mu_perc_5": mu["5%"][idx],
+        "mu_perc_95": mu["95%"][idx],
+        "obs_mean": obs["mean"][idx],
+        "obs_std": obs["std"][idx],
+        "obs_perc_5": obs["5%"][idx],
+        "obs_perc_95": obs["95%"][idx],
     })
 
     print(df)
@@ -94,8 +107,10 @@ def trace_summary(svi, xdata, ydata):
     plot_obs(df)
     plt.title('trace summary: obs')
 
+    #import pudb; pudb.set_trace()
 
 def guide_summary(guide, x_data, y_data):
+    #import pudb; pudb.set_trace()
     sampled_models = [guide(None, None) for _ in range(10000)]
     npredicted = np.asarray(
         [model(x_data).data.cpu().numpy()[:, 0] for model in sampled_models]
@@ -104,26 +119,28 @@ def guide_summary(guide, x_data, y_data):
     pred_5q = np.percentile(npredicted, 5, axis=0)
     pred_95q = np.percentile(npredicted, 95, axis=0)
 
-    x = x_data.cpu().numpy().ravel()
-    idx = np.argsort(x)
+    #x = x_data.cpu().numpy().ravel()
+    #idx = np.argsort(x)
+    y = y_data.cpu().numpy().ravel()
+    idx = np.argsort(y)
 
     df = pd.DataFrame({
-        "x_data": x[idx],
+        #"x_data": x[idx],
+        "Index": np.linspace(0, np.size(y), np.size(y)),
+        "y_data": y[idx],
         "mu_mean": pred_mean[idx],
         "mu_perc_5": pred_5q[idx],
         "mu_perc_95": pred_95q[idx],
-        "y_data": y_data.cpu().numpy().ravel()[idx],
     })
-
     plot_mu(df)
     plt.title('Guide summary')
 
 
 def plot_mu(df):
     plt.figure()
-    plt.plot(df['x_data'], df['y_data'], 'o', color='C0', label='true')
-    plt.plot(df['x_data'], df['mu_mean'], color='C1', label='mu')
-    plt.fill_between(df["x_data"],
+    plt.plot(df['Index'], df['y_data'], 'o', color='C0', label='true')
+    plt.plot(df['Index'], df['mu_mean'], 'o', color='C1', label='mu')
+    plt.fill_between(df["Index"],
                      df["mu_perc_5"],
                      df["mu_perc_95"],
                      color='C1',
@@ -133,9 +150,10 @@ def plot_mu(df):
 
 def plot_obs(df):
     plt.figure()
-    plt.plot(df['x_data'], df['y_data'], 'o', color='C0', label='true')
-    plt.plot(df['x_data'], df['obs_mean'], color='C1', label='obs')
-    plt.fill_between(df["x_data"],
+    plt.plot(df['Index'], df['y_data'], 'o', color='C0', label='true')
+    #plt.plot(df['x_data'], df['obs'], 'o', color='C5', label='obs')
+    plt.plot(df['Index'], df['obs_mean'], 'o', color='C1', label='obs_mean')
+    plt.fill_between(df["Index"],
                      df["obs_perc_5"],
                      df["obs_perc_95"],
                      color='C1',
@@ -144,6 +162,7 @@ def plot_obs(df):
 
 
 if __name__ == '__main__':
+    seed_everything()
 
     svi, model, guide = get_pyro_model(return_all=True)
 
@@ -165,5 +184,5 @@ if __name__ == '__main__':
     for name, value in pyro.get_param_store().items():
         print(name, pyro.param(name))
 
-    trace_summary(svi, x_data, y_data)
+    trace_summary(svi, model, x_data, y_data)
     guide_summary(guide, x_data, y_data)

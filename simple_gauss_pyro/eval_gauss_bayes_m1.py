@@ -4,7 +4,7 @@ import pyro
 from pyro.distributions import Delta
 from pyro.infer import EmpiricalMarginal, TracePredictive
 from model_bayes_nn import get_pyro_model
-from data_gauss_bayes import get_dataset, seed_everything
+from data_gauss_bayes import get_dataset
 import glob
 import matplotlib.pyplot as plt
 from functools import partial
@@ -14,7 +14,7 @@ import numpy as np
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
 USE_GPU = torch.cuda.is_available()
 device = torch.device('cuda' if USE_GPU else 'cpu')
-
+"""
 if os.environ['HOSTNAME'] == 'fractal':
     MODEL_FILES = '/hdd/bdhammel/checkpoints/bayes/*.params'
 else:
@@ -24,7 +24,7 @@ if os.environ['HOSTNAME'] == 'fractal':
     DATA_FILES = '/hdd/bdhammel/checkpoints/bayes/*.npy'
 else:
     DATA_FILES = '/usr/WS1/hammel1/proj/checkpoints/bayes/*.npy'
-
+"""
 
 if USE_GPU:
     print("=" * 80)
@@ -55,15 +55,15 @@ def summary(traces, sites):
     return site_stats
 
 
-def wrapped_model(x_data, y_data):
-    pyro.sample("prediction", Delta(model(x_data, y_data)))
+def wrapped_model_fn(model):
+    def _wrapped_model(x_data, y_data):
+        pyro.sample("prediction", Delta(model(x_data, y_data)))
+    return _wrapped_model
 
-
-def trace_summary(svi, xdata, ydata):
-
-    # import pudb; pudb.set_trace()
+def trace_summary(svi, model, x_data, y_data):
 
     posterior = svi.run(x_data, y_data)
+    wrapped_model = wrapped_model_fn(model)
 
     # posterior predictive distribution we can get samples from
     trace_pred = TracePredictive(wrapped_model,
@@ -74,17 +74,22 @@ def trace_summary(svi, xdata, ydata):
     mu = post_summary["prediction"]
     obs = post_summary["obs"]
 
+
+    x = x_data.cpu().numpy().ravel()
+    idx = np.argsort(x)
+
     df = pd.DataFrame({
-        # "x_data": x_data.cpu().numpy(),
-        "y_data": y_data.cpu().numpy()[..., 0],
-        "mu_mean": mu["mean"],
-        "mu_std": mu["std"],
-        "mu_perc_5": mu["5%"],
-        "mu_perc_95": mu["95%"],
-        "obs_mean": obs["mean"],
-        "obs_std": obs["std"],
-        "obs_perc_5": obs["5%"],
-        "obs_perc_95": obs["95%"],
+        "x_data": x[idx],
+        "y_data": y_data.cpu().numpy().ravel()[idx],
+        #"obs": obs[idx],
+        "mu_mean": mu["mean"][idx],
+        "mu_std": mu["std"][idx],
+        "mu_perc_5": mu["5%"][idx],
+        "mu_perc_95": mu["95%"][idx],
+        "obs_mean": obs["mean"][idx],
+        "obs_std": obs["std"][idx],
+        "obs_perc_5": obs["5%"][idx],
+        "obs_perc_95": obs["95%"][idx],
     })
 
     print(df)
@@ -143,27 +148,4 @@ def plot_obs(df):
     plt.legend()
 
 
-if __name__ == '__main__':
 
-    svi, model, guide = get_pyro_model(return_all=True)
-
-    saved_param_files = glob.glob(MODEL_FILES)
-    saved_param_files.sort(key=os.path.getmtime, reverse=True)
-    print(*saved_param_files, sep='\n')
-    idx = int(input("file? (0 for most recent exp) > "))
-    pyro.get_param_store().load(saved_param_files[idx])
-
-    saved_data_files = glob.glob(DATA_FILES)
-    saved_data_files.sort(key=os.path.getmtime, reverse=True)
-    print(*saved_data_files, sep='\n')
-    idx = int(input("file? (0 for most recent data) > "))
-    training_generator = iter(get_dataset(
-        batch_size=1000, data_file=saved_data_files[idx]
-    ))
-    x_data, y_data = next(training_generator)
-
-    for name, value in pyro.get_param_store().items():
-        print(name, pyro.param(name))
-
-    trace_summary(svi, x_data, y_data)
-    guide_summary(guide, x_data, y_data)
