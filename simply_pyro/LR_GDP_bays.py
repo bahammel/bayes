@@ -24,6 +24,14 @@ smoke_test = ('CI' in os.environ)
 #assert pyro.__version__.startswith('0.3.0')
 pyro.enable_validation(True)
 
+
+# We'll ue this helper to check our models are correct.
+def test_model(model, guide, loss, x_data, y_data):
+    pyro.clear_param_store()
+    loss.loss(model, guide, x_data, y_data)
+
+
+
 num_of_cases = 100
 epsilon = 10
 b = 1.0
@@ -137,7 +145,7 @@ sampled_reg_model = lifted_module()
 def model(x_data, y_data):
     # weight and bias priors
     w_prior = Normal(torch.zeros(1, 2), torch.ones(1, 2)).to_event(1)
-    b_prior = Normal(torch.tensor([[8.]]), torch.tensor([[1000.]])).to_event(1)
+    b_prior = Normal(8*torch.ones(1,1), 1000*torch.ones(1,1)).to_event(1)
     f_prior = Normal(0., 1.)
     priors = {'linear.weight': w_prior, 'linear.bias': b_prior} # , 'factor': f_prior}
     scale = pyro.sample("sigma", Uniform(0., 200.))
@@ -168,6 +176,10 @@ def train():
         loss = svi.step(x_data, y_data)
         if j % 100 == 0:
             print("[iteration %04d] loss: %.4f" % (j + 1, loss / len(data)))
+
+    trace = poutine.trace(poutine.enum(model, first_available_dim=-2)).get_trace(x_data, y_data)
+    trace.compute_log_prob()  # optional, but allows printing of log_prob shapes
+    print(trace.format_shapes())
 
 train()
 

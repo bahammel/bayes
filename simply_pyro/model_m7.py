@@ -22,40 +22,38 @@ def model_fn(regression_model):
 
     def _model(x_data, y_data):
         # weight and bias priors
-        priors = {
-            'linear.weight': Normal(
-                loc=torch.zeros_like(regression_model.linear.weight),
-                scale=torch.ones_like(regression_model.linear.weight)
-            ).to_event(0),
-            'linear.bias': Normal(
-                loc=100*torch.ones_like(regression_model.linear.bias),
-                scale=100*torch.ones_like(regression_model.linear.bias)
-            ).to_event(0)
-        }
+        w_prior = Normal(torch.zeros(1,1), torch.ones(1,1)).to_event(1)
+        b_prior = Normal(10*torch.ones(1,1), 10*torch.ones(1,1)).to_event(1)
 
+        priors = {'linear.weight': w_prior, 'linear.bias': b_prior}
         scale = pyro.sample('sigma', Uniform(0, 2000))
 
-        # lift module parameters to random variables sampled from the priors
         lifted_module = pyro.random_module(
             "module", regression_model, priors
         )
         # sample a nn (which also samples w and b)
         lifted_reg_model = lifted_module()
 
-        print(priors)
-        #print("batch shape:", priors.batch_shape)
-        #print("event shape:", priors.event_shape)
-        #print("event dim:", piors.event_dim)
+        #print(w_prior)
+        # print("w_prior shape:", w_prior.shape)
+        # print("batch shape:", w_prior.batch_shape)
+        # print("event shape:", w_prior.event_shape)
+        # print("event dim:", w_prior.event_dim)
 
         with pyro.plate("map", len(x_data)):
-
+            #x = pyro.sample("x", w_prior)
             # run the nn forward on data
-            prediction_mean = lifted_reg_model(x_data).squeeze(-1)
+            prediction_mean = lifted_reg_model(x_data).squeeze(-1)  # shape: (256,)
+            # print('x_data', x_data.shape)
+            # print('prediction_mean', prediction_mean.shape)
+            # print('y_data', y_data.shape)
 
             # condition on the observed data
-            pyro.sample("obs",
-                        Normal(prediction_mean, scale),
-                        obs=y_data)
+            res = pyro.sample("obs",
+                              Normal(prediction_mean, scale),
+                              obs=y_data)  # shape (256, 1)
+
+            # print('res', res.shape)
 
             return prediction_mean
 

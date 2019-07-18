@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 import os
 import random
 
-torch.set_default_tensor_type('torch.cuda.FloatTensor')
 USE_GPU = torch.cuda.is_available()
 device = torch.device('cuda' if USE_GPU else 'cpu')
+torch.set_default_tensor_type('torch.cuda.FloatTensor' if USE_GPU else 'torch.FloatTensor')
 
 
 def seed_everything(seed=1234):
@@ -28,8 +28,8 @@ class DataSet(Dataset):
 
     def __init__(self, m, b, epsilon, seed):
         np.random.seed(seed)
-        self.X = x = 10 * np.random.rand(10000, 1)
-        self.Y = m * x + b + epsilon * np.random.randn(*x.shape)
+        self.X = x = 10 * np.random.rand(256016, 1)  # shape (cases, features)
+        self.Y = m * x + b + epsilon * np.random.randn(*x.shape)  # shape (cases, 1)
 
     def __len__(self):
         return len(self.X)
@@ -37,7 +37,7 @@ class DataSet(Dataset):
     def __getitem__(self, idx):
         x = self.X[idx].astype(np.float32)
         y = self.Y[idx].astype(np.float32)
-        return torch.tensor(x, device=device), torch.tensor(y, device=device)
+        return torch.tensor(x, device=device), torch.tensor(y, device=device).squeeze(-1)
 
     def save(self, path):
         data = np.c_[self.X, self.Y]
@@ -46,7 +46,7 @@ class DataSet(Dataset):
     def load(self, path):
         X, Y = np.load(path).T
         self.X = X[:, None]
-        self.Y = Y[:, None]
+        self.Y = Y
 
 
 def get_dataset(m=0, b=5.0, epsilon=1.00, batch_size=128, seed=None, data_file=None):
@@ -55,7 +55,7 @@ def get_dataset(m=0, b=5.0, epsilon=1.00, batch_size=128, seed=None, data_file=N
     if data_file is not None:
         training_set.load(data_file)
 
-    return DataLoader(training_set, batch_size=batch_size)
+    return DataLoader(training_set, batch_size=batch_size, drop_last=True)
 
 
 if __name__ == '__main__':

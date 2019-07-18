@@ -11,9 +11,9 @@ from functools import partial
 import pandas as pd
 import numpy as np
 
-torch.set_default_tensor_type('torch.cuda.FloatTensor')
 USE_GPU = torch.cuda.is_available()
 device = torch.device('cuda' if USE_GPU else 'cpu')
+torch.set_default_tensor_type('torch.cuda.FloatTensor' if USE_GPU else 'torch.FloatTensor')
 
 if os.environ['HOSTNAME'] == 'fractal':
     MODEL_FILES = '/hdd/bdhammel/checkpoints/bayes/*.params'

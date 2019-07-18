@@ -1,6 +1,6 @@
 import pyro
 import numpy as np
-from model_m6 import RegressionModel, get_pyro_model
+from model_m7 import RegressionModel, get_pyro_model
 import matplotlib.pyplot as plt
 import torch
 from data import get_dataset, seed_everything
@@ -8,7 +8,18 @@ from eval_m2 import trace_summary
 from tqdm import tqdm
 from datetime import datetime
 import os
+from pyro.infer import Trace_ELBO, TraceEnum_ELBO, config_enumerate
+import pyro.poutine as poutine
 
+
+# enable validation (e.g. validate parameters of distributions)
+assert pyro.__version__.startswith('0.3.1')
+pyro.enable_validation(True)
+
+# We'll ue this helper to check our models are correct.
+def test_model(model, guide, loss, x_data, y_data):
+    pyro.clear_param_store()
+    loss.loss(model, guide, x_data, y_data)
 
 EPOCHS = 50
 
@@ -42,14 +53,25 @@ def train_bayes(training_generator):
         losses = []
         for x_data, y_data in tqdm(training_generator):
             losses.append(svi.step(x_data, y_data))
+
+
+
         loss_hist.append(np.mean(losses))
         print(f"epoch {e}/{EPOCHS} :", loss_hist[-1])
+
 
     plt.plot(loss_hist)
     plt.yscale('log')
     plt.title("ELBO")
     plt.xlabel("step")
     plt.ylabel("Epoch loss")
+
+    #test_model(model, model, Trace_ELBO(), x_data, y_data)
+    print(x_data.shape)
+    print(y_data.shape)
+    trace = poutine.trace(model).get_trace(x_data, y_data)
+    trace.compute_log_prob()  # optional, but allows printing of log_prob shapes
+    print(trace.format_shapes())
 
     trace_summary(svi, model, x_data, y_data)
 
@@ -83,7 +105,7 @@ def save():
 if __name__ == '__main__':
     seed_everything()
     pyro.clear_param_store()
-    training_generator = get_dataset(batch_size=1028)
+    training_generator = get_dataset(batch_size=256)
     # train_nn(training_generator)
     train_bayes(training_generator)
     save()
