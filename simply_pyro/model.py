@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch
-from pyro.distributions import Normal
+from pyro.distributions import Normal, Uniform
 from pyro.contrib.autoguide import AutoDiagonalNormal
 from pyro.optim import Adam
 from pyro.infer import SVI, Trace_ELBO
@@ -22,31 +22,28 @@ def model_fn(regression_model):
 
     def _model(x_data, y_data):
         # weight and bias priors
-        priors = {
-            'linear.weight': Normal(
-                loc=torch.zeros_like(regression_model.linear.weight),
-                scale=torch.ones_like(regression_model.linear.weight)
-            ),
-            'linear.bias': Normal(
-                loc=torch.zeros_like(regression_model.linear.bias),
-                scale=torch.ones_like(regression_model.linear.bias)
-            )
-        }
+        w_prior = Normal(torch.zeros(1,1), torch.ones(1,1)).to_event(1)
+        b_prior = Normal(10*torch.ones(1,1), 10*torch.ones(1,1)).to_event(1)
 
-        # lift module parameters to random variables sampled from the priors
+        priors = {'linear.weight': w_prior, 'linear.bias': b_prior}
+        scale = pyro.sample('sigma', Uniform(0, 2000))
+
         lifted_module = pyro.random_module(
             "module", regression_model, priors
         )
         # sample a nn (which also samples w and b)
         lifted_reg_model = lifted_module()
 
-        # run the nn forward on data
-        prediction_mean = lifted_reg_model(x_data)
+        with pyro.plate("map", len(x_data)):
+            # run the nn forward on data
+            prediction_mean = lifted_reg_model(x_data).squeeze(-1)  # shape: (256,)
 
-        # condition on the observed data
-        pyro.sample("obs", Normal(prediction_mean, 2), obs=y_data)
+            # condition on the observed data
+            res = pyro.sample("obs",
+                              Normal(prediction_mean, scale),
+                              obs=y_data)  # shape (256, 1)
 
-        return prediction_mean
+            return prediction_mean
 
     return _model
 
@@ -67,6 +64,9 @@ def guide_fn(regression_model):
         b_mu_param = pyro.param("b_mu", b_mu)
         b_sigma_param = softplus(pyro.param("b_sigma", b_sigma))
 
+        sigma_loc = pyro.param('sigma_loc', torch.tensor(1.),
+                             constraint=constraints.positive)
+        sigma = pyro.sample("sigma", Normal(sigma_loc, torch.tensor(0.05)))
         priors = {
             'linear.weight': Normal(loc=w_mu_param, scale=w_sigma_param),
             'linear.bias': Normal(loc=b_mu_param, scale=b_sigma_param)
@@ -81,7 +81,8 @@ def guide_fn(regression_model):
 def get_pyro_model(return_all=False):
     regression_model = RegressionModel(p=1)
     model = model_fn(regression_model)
-    guide = guide_fn(regression_model)
+    guide = AutoDiagonalNormal(model)
+    # guide = guide_fn(regression_model)
     optimizer = Adam({'lr': 0.05})
     svi = SVI(model, guide, optimizer, loss=Trace_ELBO(), num_samples=1000)
     if return_all:

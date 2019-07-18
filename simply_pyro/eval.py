@@ -11,9 +11,9 @@ from functools import partial
 import pandas as pd
 import numpy as np
 
-torch.set_default_tensor_type('torch.cuda.FloatTensor')
 USE_GPU = torch.cuda.is_available()
 device = torch.device('cuda' if USE_GPU else 'cpu')
+torch.set_default_tensor_type('torch.cuda.FloatTensor' if USE_GPU else 'torch.FloatTensor')
 
 if os.environ['HOSTNAME'] == 'fractal':
     MODEL_FILES = '/hdd/bdhammel/checkpoints/bayes/*.params'
@@ -44,7 +44,7 @@ def summary(traces, sites):
     site_stats = {}
     for i in range(marginal.shape[1]):
         site_name = sites[i]
-        marginal_site = pd.DataFrame(marginal[:, i, :, 0]).transpose()
+        marginal_site = pd.DataFrame(marginal[:, i, :]).transpose()
         describe = partial(
             pd.Series.describe, percentiles=[.05, 0.25, 0.5, 0.75, 0.95]
         )
@@ -64,11 +64,12 @@ def wrapped_model_fn(model):
 def trace_summary(svi, model, x_data, y_data):
 
     posterior = svi.run(x_data, y_data)
+    wrapped_model = wrapped_model_fn(model)
 
     # posterior predictive distribution we can get samples from
     trace_pred = TracePredictive(wrapped_model,
                                  posterior,
-                                 num_samples=1000)
+                                 num_samples=10000)
     post_pred = trace_pred.run(x_data, None)
     post_summary = summary(post_pred, sites=['prediction', 'obs'])
     mu = post_summary["prediction"]
@@ -161,8 +162,6 @@ if __name__ == '__main__':
     print(*saved_param_files, sep='\n')
     idx = int(input("file? (0 for most recent exp) > "))
     pyro.get_param_store().load(saved_param_files[idx])
-    for name, value in pyro.get_param_store().items():
-        print(name, pyro.param(name))
 
     saved_data_files = glob.glob(DATA_FILES)
     saved_data_files.sort(key=os.path.getmtime, reverse=True)
@@ -176,5 +175,5 @@ if __name__ == '__main__':
     for name, value in pyro.get_param_store().items():
         print(name, pyro.param(name))
 
-    trace_summary(svi, x_data, y_data)
+    trace_summary(svi, model, x_data, y_data)
     guide_summary(guide, x_data, y_data)

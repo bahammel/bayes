@@ -28,7 +28,7 @@ class DataSet(Dataset):
 
     def __init__(self, m, b, epsilon, seed):
         np.random.seed(seed)
-        self.X = x = 10 * np.random.rand(256016, 1)  # shape (cases, features)
+        self.X = x = 10 * np.random.rand(256*200, 1)  # shape (cases, features)
         self.Y = m * x + b + epsilon * np.random.randn(*x.shape)  # shape (cases, 1)
 
     def __len__(self):

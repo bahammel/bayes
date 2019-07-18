@@ -1,10 +1,10 @@
 import pyro
 import numpy as np
-from model_m7 import RegressionModel, get_pyro_model
+from model import RegressionModel, get_pyro_model
 import matplotlib.pyplot as plt
 import torch
 from data import get_dataset, seed_everything
-from eval_m2 import trace_summary
+from eval import trace_summary
 from tqdm import tqdm
 from datetime import datetime
 import os
@@ -21,7 +21,7 @@ def test_model(model, guide, loss, x_data, y_data):
     pyro.clear_param_store()
     loss.loss(model, guide, x_data, y_data)
 
-EPOCHS = 50
+EPOCHS = 10
 
 
 def train_nn(training_generator):
@@ -53,8 +53,6 @@ def train_bayes(training_generator):
         losses = []
         for x_data, y_data in tqdm(training_generator):
             losses.append(svi.step(x_data, y_data))
-
-
 
         loss_hist.append(np.mean(losses))
         print(f"epoch {e}/{EPOCHS} :", loss_hist[-1])
