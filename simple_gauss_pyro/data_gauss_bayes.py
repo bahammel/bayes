@@ -34,7 +34,7 @@ class DataSet(Dataset):
         #shift = np.random.choice(np.linspace(-1, 1, 5000))
         shift = np.random.rand(5000, 1) - 1.0
         #mu = np.random.choice(np.linspace(5.8, 6.2, 2))
-        self.Y = y = mu * (1. + shift/1.e2)  
+        self.Y = y = mu * (1. + shift/1.e1)  
         #std = np.random.choice(np.linspace(2, 3, 2))
         #amp = np.random.choice(np.linspace(0.1, 1.0,20))
         self.X = amp * (1.0) / (std*np.sqrt(2.*np.pi)) * np.exp(-((hu - y)**2./(2.* std**2.))**1.0)
@@ -45,7 +45,7 @@ class DataSet(Dataset):
     def __getitem__(self, idx):
         x = self.X[idx].astype(np.float32)
         y = self.Y[idx].astype(np.float32)
-        return torch.tensor(x, device=device), torch.tensor(y, device=device)
+        return torch.tensor(x, device=device), torch.tensor(y, device=device).squeeze(-1)
 
     def save(self, path):
         np.save(path, {'X':self.X, 'Y':self.Y})
@@ -56,7 +56,7 @@ class DataSet(Dataset):
         self.Y = data.item()['Y']
 
 
-def get_dataset(mu=0.6, std=0.2, amp=0.1, batch_size=128, seed=None, data_file=None):
+def get_dataset(mu=0.6, std=0.2, amp=0.1, batch_size=256, seed=None, data_file=None):
     print(f'Fitting Gaussian with: mu = {mu}, std = {std}, amp = {amp}')
     training_set = DataSet(mu=mu,std=std,amp=amp,seed=seed)
 
@@ -78,7 +78,7 @@ def get_dataset(mu=0.6, std=0.2, amp=0.1, batch_size=128, seed=None, data_file=N
         print(training_set.X.shape)
         print(training_set.Y.shape)
 
-    return DataLoader(training_set, batch_size=batch_size)
+    return DataLoader(training_set, batch_size=batch_size, drop_last=True)
 
 
 if __name__ == '__main__':

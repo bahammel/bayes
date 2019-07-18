@@ -10,13 +10,17 @@ from datetime import datetime
 import os
 import pdb
 import torch.nn.functional as F
+from pyro.infer import Trace_ELBO, TraceEnum_ELBO, config_enumerate
 import pyro.poutine as poutine
 
 # enable validation (e.g. validate parameters of distributions)
 assert pyro.__version__.startswith('0.3.1')
-# pyro.enable_validation(True)
+#pyro.enable_validation(True)
 
-
+# We'll ue this helper to check our models are correct.
+def test_model(model, guide, loss):
+    pyro.clear_param_store()
+    loss.loss(model, guide)
 
 #pdb.set_trace()
 
@@ -54,8 +58,10 @@ def train_bayes(training_generator):
         losses = []
         for x_data, y_data in tqdm(training_generator):
             losses.append(svi.step(x_data, y_data))
+            
+        #test_model(model(x_data,y_data), model(x_data,y_data), Trace_ELBO())
 
-        trace = poutine.trace(poutine.enum(model, first_available_dim=-3)).get_trace(x_data, y_data)
+        trace = poutine.trace(model).get_trace(x_data, y_data)
         trace.compute_log_prob()  # optional, but allows printing of log_prob shapes
         print(trace.format_shapes())
 

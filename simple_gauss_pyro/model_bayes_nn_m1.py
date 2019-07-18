@@ -33,24 +33,21 @@ def model_fn(nn_model):
     def _model(x_data, y_data):
         
         fc1w_prior = Normal(loc=torch.zeros_like(nn_model.fc1.weight), 
-                            scale=torch.ones_like(nn_model.fc1.weight)
-                           ).to_event(1)
+                            scale=torch.ones_like(nn_model.fc1.weight)).to_event()
         fc1b_prior = Normal(loc=torch.zeros_like(nn_model.fc1.bias), 
-                            scale=torch.ones_like(nn_model.fc1.bias)
-                           ).to_event(1)
+                            scale=torch.ones_like(nn_model.fc1.bias)).to_event()
         
         outw_prior = Normal(loc=torch.zeros_like(nn_model.out.weight), 
-                            scale=torch.ones_like(nn_model.out.weight)
-                           ).to_event(1)
+                            scale=torch.ones_like(nn_model.out.weight)).to_event()
         outb_prior = Normal(loc=torch.zeros_like(nn_model.out.bias), 
-                            scale=torch.ones_like(nn_model.out.bias)
-                           ).to_event(1)
+                            scale=torch.ones_like(nn_model.out.bias)).to_event()
         
         priors = {
             'fc1.weight': fc1w_prior, 
             'fc1.bias': fc1b_prior,  
             'out.weight': outw_prior, 
-            'out.bias': outb_prior}
+            'out.bias': outb_prior
+        }
 
         scale = pyro.sample('sigma', Uniform(0, 20))
 
@@ -72,7 +69,9 @@ def model_fn(nn_model):
                         obs=y_data)
 
             return prediction_mean
+
     return _model
+
 
 def guide_fn(nn_model):
     softplus = torch.nn.Softplus()
@@ -95,7 +94,7 @@ def guide_fn(nn_model):
         outw_sigma = torch.randn_like(nn_model.out.weight)
         outw_mu_param = pyro.param("outw_mu", outw_mu)
         outw_sigma_param = softplus(pyro.param("outw_sigma", outw_sigma))
-        outw_prior = Normal(loc=outw_mu_param, scale=outw_sigma_param).independent(1)
+        outw_prior = Normal(loc=outw_mu_param, scale=outw_sigma_param)
         # Output layer bias distribution priors
         outb_mu = torch.randn_like(nn_model.out.bias)
         outb_sigma = torch.randn_like(nn_model.out.bias)
