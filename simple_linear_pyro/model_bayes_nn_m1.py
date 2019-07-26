@@ -33,14 +33,14 @@ def model_fn(nn_model):
     def _model(x_data, y_data):
         
         fc1w_prior = Normal(loc=torch.zeros_like(nn_model.fc1.weight), 
-                            scale=2*torch.ones_like(nn_model.fc1.weight)).to_event()
+                            scale=0.25*torch.ones_like(nn_model.fc1.weight)).to_event()
         fc1b_prior = Normal(loc=torch.zeros_like(nn_model.fc1.bias), 
-                            scale=2*torch.ones_like(nn_model.fc1.bias)).to_event()
+                            scale=0.25*torch.ones_like(nn_model.fc1.bias)).to_event()
         
         outw_prior = Normal(loc=torch.zeros_like(nn_model.out.weight), 
-                            scale=2*torch.ones_like(nn_model.out.weight)).to_event()
+                            scale=0.25*torch.ones_like(nn_model.out.weight)).to_event()
         outb_prior = Normal(loc=torch.zeros_like(nn_model.out.bias), 
-                            scale=2*torch.ones_like(nn_model.out.bias)).to_event()
+                            scale=0.25*torch.ones_like(nn_model.out.bias)).to_event()
         
         priors = {
             'fc1.weight': fc1w_prior, 
@@ -49,7 +49,7 @@ def model_fn(nn_model):
             'out.bias': outb_prior
         }
 
-        sigma = pyro.sample('sigma', Uniform(0, 200))
+        sigma = pyro.sample('sigma', Uniform(0, 20))
 
         # lift module parameters to random variables sampled from the priors
         lifted_module = pyro.random_module(

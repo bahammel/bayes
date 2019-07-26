@@ -7,8 +7,8 @@ import random
 import pdb
 #pdb.set_trace()
 
-torch.set_default_tensor_type('torch.cuda.FloatTensor')
 USE_GPU = torch.cuda.is_available()
+torch.set_default_tensor_type('torch.cuda.FloatTensor' if USE_GPU else 'torch.FloatTensor')
 device = torch.device('cuda' if USE_GPU else 'cpu')
 
 
@@ -28,12 +28,13 @@ if USE_GPU:
 
 class DataSet(Dataset):
 
-    def __init__(self, m, b, epsilon, seed):
+    def __init__(self, m, b, epsilon, seed=None):
         Z = np.linspace(0.1, 1.0, 3)
         np.random.seed(seed)
-        shift = epsilon * (np.random.rand(5000, 1) - 1.0)
-        self.Y = b*np.ones(5000)
+        shift = epsilon * (2*np.random.rand(5000, 1) - 1.0)
         bsh = b * (1. + shift)  
+        #self.Y = b*np.ones(5000)
+        self.Y = bsh
         self.X = (m * Z) + bsh
 
     def __len__(self):
@@ -79,9 +80,9 @@ def get_dataset(m=0.0,b=2.0, epsilon=1.e-10, batch_size=256, seed=None, data_fil
 
 
 if __name__ == '__main__':
-    training_set = DataSet(0.0, 2.0, 1.e-10)
+    training_set = DataSet(0.0, 2.0, 2.0)
     training_generator = DataLoader(training_set, batch_size=50, shuffle=True)
-    for x, y in training_generator:
-        plt.plot(x.cpu().numpy().ravel(), y.cpu().numpy().ravel(), 'o')
-        input()
-        plt.draw()
+    # for x, y in training_generator:
+    #     plt.plot(x.cpu().numpy().ravel(), y.cpu().numpy().ravel(), 'o')
+    #     input()
+    #     plt.draw()
