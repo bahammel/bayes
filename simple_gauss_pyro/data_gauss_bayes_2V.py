@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import os
 import random
 import pdb
+import logging
 #pdb.set_trace()
 
 USE_GPU = torch.cuda.is_available()
@@ -31,11 +32,20 @@ class DataSet(Dataset):
     def __init__(self, mu, std, amp, seed):
         hu = np.linspace(0.1, 1.0, 30)
         np.random.seed(seed)
-        # shift = 2.0*np.random.rand(5000, 1) - 1.0
-        mu = np.random.choice([5.8, 6.2], size=(5000, 1))
+        #shift = np.random.choice(np.linspace(-1, 1, 5000))
+        shift = 2.0*np.random.rand(5000, 1) - 1.0
+        #mu = np.random.choice(np.linspace(5.8, 6.2, 2))
+        #self.Y = mu*np.ones(5000)
         #mush = mu * (1. + shift/1.e1)  
-        self.Y = mu
-        self.X = amp * (1.0) / (std*np.sqrt(2.*np.pi)) * np.exp(-((hu - mu)**2./(2.* std**2.))**1.0)
+        mush = mu * (1. + shift/1.e1)  
+        stdsh = std * (1. + shift/1.e1)  
+        self.Y = np.c_[mush, stdsh]
+        #amp = np.random.choice(np.linspace(0.1, 1.0,20))
+        self.X = amp * (1.0) / (stdsh*np.sqrt(2.*np.pi)) * np.exp(-((hu - mush)**2./(2.* stdsh**2.))**1.0)
+        logging.debug(f"mush {mush.shape}")
+        logging.debug(f"stdsh {stdsh.shape}")
+        logging.debug(f"X {self.X.shape}")
+        logging.debug(f"y {self.Y.shape}")
 
     def __len__(self):
         return len(self.X)

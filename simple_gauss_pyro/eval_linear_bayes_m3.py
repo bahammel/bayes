@@ -3,8 +3,8 @@ import torch
 import pyro
 from pyro.distributions import Delta
 from pyro.infer import EmpiricalMarginal, TracePredictive
-from model_bayes_nn_5L import get_pyro_model
-from data_gauss_bayes import get_dataset, seed_everything
+from model_bayes_nn_m1 import get_pyro_model
+from data_linear_bayes import get_dataset, seed_everything
 import glob
 import matplotlib.pyplot as plt
 from functools import partial
@@ -78,16 +78,15 @@ def trace_summary(svi, model, x_data, y_data):
 
     #import pudb; pudb.set_trace()
 
-    #x = x_data.cpu().numpy().ravel()
-    #idx = np.argsort(x)
+    x = x_data.cpu().numpy().ravel()
 
     y = y_data.cpu().numpy().ravel()
     idx = np.argsort(y)
 
     df = pd.DataFrame({
-        #"x_data": x[idx],
+        "x_data": x[idx],
         #"y_data": y_data.cpu().numpy().ravel()[idx],
-        "Index": np.linspace(0, np.size(y), np.size(y)),
+        # "Index": np.linspace(0, np.size(y), np.size(y)),
         "y_data": y[idx],
         #"obs": obs[idx],
         "mu_mean": mu["mean"][idx],
@@ -100,12 +99,16 @@ def trace_summary(svi, model, x_data, y_data):
         "obs_perc_95": obs["95%"][idx],
     })
 
+    print("check")
     print(df)
+    print("check")
+
 
     plot_mu(df)
     plt.title('trace summary: mu')
     plot_obs(df)
     plt.title('trace summary: obs')
+    return df
 
     #import pudb; pudb.set_trace()
 
@@ -119,13 +122,13 @@ def guide_summary(guide, x_data, y_data):
     pred_5q = np.percentile(npredicted, 5, axis=0)
     pred_95q = np.percentile(npredicted, 95, axis=0)
 
-    #x = x_data.cpu().numpy().ravel()
-    #idx = np.argsort(x)
+    x = x_data.cpu().numpy().ravel()
+    # idx = np.argsort(x)
     y = y_data.cpu().numpy().ravel()
     idx = np.argsort(y)
 
     df = pd.DataFrame({
-        #"x_data": x[idx],
+        "x_data": x[idx],
         "Index": np.linspace(0, np.size(y), np.size(y)),
         "y_data": y[idx],
         "mu_mean": pred_mean[idx],
@@ -138,9 +141,11 @@ def guide_summary(guide, x_data, y_data):
 
 def plot_mu(df):
     plt.figure()
-    plt.plot(df['Index'], df['y_data'], 'o', color='C0', label='true')
-    plt.plot(df['Index'], df['mu_mean'], 'o', color='C1', label='mu')
-    plt.fill_between(df["Index"],
+    # plt.plot(df['x_data'], df['y_data'], 'o', color='C0', label='true')
+    # plt.plot(df['x_data'], df['mu_mean'], 'o', color='C1', label='mu')
+    plt.plot(df['y_data'].values, 'o', color='C0', label='true')
+    plt.plot(df['mu_mean'].values, 'o', color='C1', label='mu')
+    plt.fill_between(df["y_data"],
                      df["mu_perc_5"],
                      df["mu_perc_95"],
                      color='C1',
@@ -150,10 +155,12 @@ def plot_mu(df):
 
 def plot_obs(df):
     plt.figure()
-    plt.plot(df['Index'], df['y_data'], 'o', color='C0', label='true')
+    # plt.plot(df['x_data'], df['y_data'], 'o', color='C0', label='true')
+    plt.plot(df['y_data'], 'o', color='C0', label='true')
     #plt.plot(df['x_data'], df['obs'], 'o', color='C5', label='obs')
-    plt.plot(df['Index'], df['obs_mean'], 'o', color='C1', label='obs_mean')
-    plt.fill_between(df["Index"],
+    # plt.plot(df['x_data'], df['obs_mean'], 'o', color='C1', label='obs_mean')
+    plt.plot(df['obs_mean'], 'o', color='C1', label='obs_mean')
+    plt.fill_between(df["y_data"],
                      df["obs_perc_5"],
                      df["obs_perc_95"],
                      color='C1',
