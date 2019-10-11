@@ -33,14 +33,14 @@ def model_fn(nn_model):
     def _model(x_data, y_data):
         
         fc1w_prior = Normal(loc=torch.zeros_like(nn_model.fc1.weight), 
-                            scale=0.25*torch.ones_like(nn_model.fc1.weight)).to_event()
+                            scale=0.5*torch.ones_like(nn_model.fc1.weight)).to_event()
         fc1b_prior = Normal(loc=torch.zeros_like(nn_model.fc1.bias), 
-                            scale=0.25*torch.ones_like(nn_model.fc1.bias)).to_event()
+                            scale=0.5*torch.ones_like(nn_model.fc1.bias)).to_event()
         
         outw_prior = Normal(loc=torch.zeros_like(nn_model.out.weight), 
-                            scale=0.25*torch.ones_like(nn_model.out.weight)).to_event()
+                            scale=0.5*torch.ones_like(nn_model.out.weight)).to_event()
         outb_prior = Normal(loc=torch.zeros_like(nn_model.out.bias), 
-                            scale=0.25*torch.ones_like(nn_model.out.bias)).to_event()
+                            scale=0.5*torch.ones_like(nn_model.out.bias)).to_event()
         
         priors = {
             'fc1.weight': fc1w_prior, 
@@ -120,10 +120,10 @@ def guide_fn(nn_model):
 
 
 def get_pyro_model(return_all=True):
-    nn_model = NN_Model(input_size=3, hidden_size=5, output_size=1)
+    nn_model = NN_Model(input_size=3, hidden_size=2, output_size=1)
     model = model_fn(nn_model)
     guide = guide_fn(nn_model)
-    AdamArgs = { 'lr': 3e-3 }
+    AdamArgs = { 'lr': 1e-3 }
     optimizer = torch.optim.Adam
     scheduler = pyro.optim.ExponentialLR({'optimizer': optimizer, 'optim_args': AdamArgs, 'gamma': 0.99995 })
     svi = SVI(model, guide, scheduler, loss=Trace_ELBO(), num_samples=1000)
@@ -135,6 +135,6 @@ def get_pyro_model(return_all=True):
 
 
 if __name__ == '__main__':
-    nn_model = NN_Model(input_size=3, hidden_size=5, output_size=1)
+    nn_model = NN_Model(input_size=3, hidden_size=2, output_size=1)
     model = model_fn(nn_model)
     guide = guide_fn(nn_model)

@@ -25,12 +25,15 @@ def model_fn(regression_model):
         w_prior = Normal(torch.zeros(1,1), torch.ones(1,1)).to_event(1)
         b_prior = Normal(10*torch.ones(1,1), 10*torch.ones(1,1)).to_event(1)
 
-        priors = {'linear.weight': w_prior, 'linear.bias': b_prior}
+        priors = {
+            'linear.weight': w_prior,
+            'linear.bias': b_prior
+        }
+
         scale = pyro.sample('sigma', Uniform(0, 2000))
 
         lifted_module = pyro.random_module(
-            "module", regression_model, priors
-        )
+            "module", regression_model, priors)
         # sample a nn (which also samples w and b)
         lifted_reg_model = lifted_module()
 

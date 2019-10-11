@@ -18,17 +18,19 @@ USE_GPU = torch.cuda.is_available()
 
 #exp_id = '2019-03-11T10:02:52.595718'   
 #exp_id = '2019-04-05T16:51:44.577528'
-exp_id = '2019-04-08T09:16:00.525043'
+#exp_id = '2019-04-08T09:16:00.525043'
+#exp_id = '2019-04-26T09:25:23.170293'
+exp_id = '2019-04-26T13:05:16.846528'
 torch.set_default_tensor_type(
     'torch.cuda.FloatTensor' if USE_GPU else 'torch.FloatTensor'
 )
 
-CHECKPOINT = f'/usr/WS1/hammel1/proj/checkpoints/{exp_id}_params'
-PARMS = f'/usr/WS1/hammel1/proj/bayes/{exp_id}_params.pt'
+CHECKPOINT = f'/usr/WS1/hammel1/proj/checkpoints/bayes/{exp_id}_params'
+PARMS = f'/usr/WS1/hammel1/proj/checkpoint/bayes/{exp_id}_params.pt'
 print('exp_id is:', exp_id)
 print('CHECKPOINT is:', CHECKPOINT)
 
-hu, PC, X_pca_test, X_pca, X, X_test, Y, Y_test = np.load(f'/usr/WS1/hammel1/proj/data/{exp_id}.npy')
+hu, PC, X_pca_test, X_pca, X, X_test, Y, Y_test = np.load(f'/usr/WS1/hammel1/proj/checkpoints/bayes/{exp_id}.npy')
 
 #Only evaluate every 1000th point
 Xtrain = torch.Tensor(X_pca)[::1000]

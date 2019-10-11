@@ -138,7 +138,8 @@ def cretin_data():
     # the simulation data
     #z = np.load('cretin_data.npz')
     #z = np.load('/usr/WS1/hammel1/proj/Cretin_runs/cretin_data.npz')
-    z = np.load('/p/lustre1/hammel1/proj/Cretin_runs/my_uqp_directories/cretin_data.npz')
+    #z = np.load('/p/lustre1/hammel1/proj/Cretin_runs/my_uqp_directories/cretin_data.npz')
+    z = np.load('/usr/WS1/hammel1/proj/cretin_data.npz')
     # reduce the range of data
     #z = clip_data(z)
 

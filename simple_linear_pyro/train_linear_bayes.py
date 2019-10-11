@@ -1,6 +1,6 @@
 import pyro
 import numpy as np
-from model_bayes_nn_m1 import NN_Model, get_pyro_model
+from model_bayes_nn_m4 import NN_Model, get_pyro_model
 import matplotlib.pyplot as plt
 import torch
 from data_linear_bayes import get_dataset, seed_everything
@@ -24,7 +24,7 @@ def test_model(model, guide, loss):
 
 #pdb.set_trace()
 
-EPOCHS = 200
+EPOCHS = 10
 
 
 def train_nn(training_generator):

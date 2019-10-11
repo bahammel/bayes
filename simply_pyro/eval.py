@@ -167,6 +167,9 @@ if __name__ == '__main__':
     saved_data_files.sort(key=os.path.getmtime, reverse=True)
     print(*saved_data_files, sep='\n')
     idx = int(input("file? (0 for most recent data) > "))
+
+    str.rsplit('/', 1)[1]
+
     training_generator = iter(get_dataset(
         batch_size=1000, data_file=saved_data_files[idx]
     ))

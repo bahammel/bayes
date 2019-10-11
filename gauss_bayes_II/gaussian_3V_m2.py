@@ -37,7 +37,7 @@ from PIL import Image
 import pdb
 import logging
 
-import pca_data_cretin_m1_ndl_sym as pca_data_hu
+import pca_data_3V as pca_data_hu
 
 # enable validation (e.g. validate parameters of distributions)
 assert pyro.__version__.startswith('0.3.1')
@@ -71,18 +71,11 @@ print("yy.shape", yy.shape)
 print("y.shape", y.shape)                                                                                                                        
 
 
-HL1_size = 300
-HL2_size = 100
-HL3_size = 30
-
+hidden_size = 100
 model = torch.nn.Sequential(
-    torch.nn.Linear(33, HL1_size),
+    torch.nn.Linear(33, hidden_size),
     torch.nn.Sigmoid(),
-    torch.nn.Linear(HL1_size, HL2_size),
-    torch.nn.Sigmoid(),
-    torch.nn.Linear(HL2_size, HL3_size),
-    torch.nn.Sigmoid(),
-    torch.nn.Linear(HL3_size, 11),
+    torch.nn.Linear(hidden_size, 3),
 )
 
 def pyromodel(x, y):
@@ -135,9 +128,9 @@ def guide(x, y):
 
 #optim = Adam({"lr": 0.05})
 #svi = SVI(pyromodel, guide, optim, loss=Trace_ELBO())
-AdamArgs = { 'lr': 0.01}
+AdamArgs = { 'lr': 0.002}
 optimizer = torch.optim.Adam
-scheduler = pyro.optim.ExponentialLR({'optimizer': optimizer, 'optim_args': AdamArgs, 'gamma': 0.9999995 })
+scheduler = pyro.optim.ExponentialLR({'optimizer': optimizer, 'optim_args': AdamArgs, 'gamma': 0.999997 })
 #scheduler = pyro.optim.ReduceLROnPlateau({'optimizer': optimizer, 'optim_args': AdamArgs, patience=10 })
 svi = SVI(pyromodel, guide, scheduler, loss=Trace_ELBO(), num_samples=EPOCHS)
 
@@ -168,7 +161,7 @@ trace = poutine.trace(pyromodel).get_trace(
 trace.compute_log_prob()  # optional, but allows printing of log_prob shapes
 print(trace.format_shapes())
         
-ys =  np.zeros(shape=(1492,50,11))
+ys =  np.zeros(shape=(2500,50,3))
 #amp = 0.1
 #sig = 0.5
 #xs = np.linspace(0, 5, 500, dtype='float32')
@@ -213,132 +206,67 @@ plt.plot(hu,x[::10,:].T)
 """
 
 
-mean_0 = ys.mean(1)[:,0]                                           
-std_0 = ys.std(1)[:,0] 
+mean_mu = ys.mean(1)[:,0]                                           
+std_mu = ys.std(1)[:,0] 
+mean_sig = ys.mean(1)[:,1] 
+std_sig = ys.std(1)[:,1]          
+mean_amp = ys.mean(1)[:,2] 
+std_amp = ys.std(1)[:,2]          
 
-mean_1 = ys.mean(1)[:,1] 
-std_1 = ys.std(1)[:,1]          
 
-mean_2 = ys.mean(1)[:,2] 
-std_2 = ys.std(1)[:,2]          
-
-mean_3 = ys.mean(1)[:,3] 
-std_3 = ys.std(1)[:,3]          
-
-mean_4 = ys.mean(1)[:,4] 
-std_4 = ys.std(1)[:,4]          
-
-mean_5 = ys.mean(1)[:,5] 
-std_5 = ys.std(1)[:,5]          
-
-mean_6 = ys.mean(1)[:,6] 
-std_6 = ys.std(1)[:,6]          
-
-mean_7 = ys.mean(1)[:,7] 
-std_7 = ys.std(1)[:,7]          
-
-mean_8 = ys.mean(1)[:,8] 
-std_8 = ys.std(1)[:,8]          
-
-mean_9 = ys.mean(1)[:,9] 
-std_9 = ys.std(1)[:,9]          
 
 plt.figure()
-plt.xscale('linear')
 plt.yscale('linear')
-plt.title("Fit to t1")
-plt.xlabel("average of intensity")
-plt.ylabel("t1")
-plt.errorbar(xs.mean(1).cpu().numpy(), mean_0, yerr=std_0, fmt='o', c='g', ms = 1, elinewidth=0.1,errorevery=1, label='mean of pred')  #mean of predicted values w 1std error
-plt.scatter(xs.mean(1).cpu().numpy(), ytest[:,0],     s=5, c='b', label='y test')
-plt.legend()
-
-plt.figure()
-plt.xscale('linear')
-plt.yscale('linear')
-plt.title("Fit to n1")
-plt.xlabel("averae of intensity")
-plt.ylabel("n1")
-plt.errorbar(xs.mean(1).cpu().numpy(), mean_1, yerr=std_1, fmt='o', c='g', ms = 1, elinewidth=0.1,errorevery=1, label='mean of pred')  #mean of predicted values w 1std error
-plt.scatter(xs.mean(1).cpu().numpy(), ytest[:,1],     s=5, c='b', label='y test')
-plt.legend()
-
-plt.figure()
-plt.xscale('linear')
-plt.yscale('linear')
-plt.title("Fit to mhot")
-plt.xlabel("averge of intensity")
-plt.ylabel("mhot")
-plt.errorbar(xs.mean(1).cpu().numpy(), mean_2, yerr=std_2, fmt='o', c='g', ms = 1, elinewidth=0.1,errorevery=1, label='mean of pred')  #mean of predicted values w 1std error
-plt.scatter(xs.mean(1).cpu().numpy(), ytest[:,2],     s=5, c='b', label='y test')
-plt.legend()
-
-plt.figure()
-plt.xscale('linear')
-plt.yscale('log')
-plt.title("Fit to mix")
-plt.xlabel("averge of intensity")
-plt.ylabel("mix")
-plt.errorbar(xs.mean(1).cpu().numpy(), mean_3, yerr=std_3, fmt='o', c='g', ms = 1, elinewidth=0.1,errorevery=1, label='mean of pred')  #mean of predicted values w 1std error
-plt.scatter(xs.mean(1).cpu().numpy(), ytest[:,3],     s=5, c='b', label='y test')
-plt.legend()
-
-plt.figure()
-plt.xscale('linear')
-plt.yscale('log')
-plt.title("Fit to mixhot")
-plt.xlabel("averge of intensity")
-plt.ylabel("mixhot")
-plt.errorbar(xs.mean(1).cpu().numpy(), mean_4, yerr=std_4, fmt='o', c='g', ms = 1, elinewidth=0.1,errorevery=1, label='mean of pred')  #mean of predicted values w 1std error
-plt.scatter(xs.mean(1).cpu().numpy(), ytest[:,4],     s=5, c='b', label='y test')
-plt.legend()
-
-plt.figure()
-plt.xscale('linear')
-plt.yscale('linear')
-plt.title("Fit to n2")
-plt.xlabel("averge of intensity")
-plt.ylabel("n2")
-plt.errorbar(xs.mean(1).cpu().numpy(), mean_6, yerr=std_6, fmt='o', c='g', ms = 1, elinewidth=0.1,errorevery=1, label='mean of pred')  #mean of predicted values w 1std error
-plt.scatter(xs.mean(1).cpu().numpy(), ytest[:,6],     s=5, c='b', label='y test')
-plt.legend()
-
-plt.figure()
-plt.xscale('linear')
-plt.yscale('linear')
-plt.title("Fit to t2")
-plt.xlabel("averge of intensity")
-plt.ylabel("t2")
-plt.errorbar(xs.mean(1).cpu().numpy(), mean_7, yerr=std_7, fmt='o', c='g', ms = 1, elinewidth=0.1,errorevery=1, label='mean of pred')  #mean of predicted values w 1std error
-plt.scatter(xs.mean(1).cpu().numpy(), ytest[:,7],     s=5, c='b', label='y test')
-plt.legend()
-
-plt.figure()
-plt.xscale('linear')
-plt.yscale('linear')
-plt.title("Fit to n3")
-plt.xlabel("averge of intensity")
-plt.ylabel("n3")
-plt.errorbar(xs.mean(1).cpu().numpy(), mean_8, yerr=std_8, fmt='o', c='g', ms = 1, elinewidth=0.1,errorevery=1, label='mean of pred')  #mean of predicted values w 1std error
-plt.scatter(xs.mean(1).cpu().numpy(), ytest[:,8],     s=5, c='b', label='y test')
-plt.legend()
-
-plt.figure()
-plt.xscale('linear')
-plt.yscale('linear')
-plt.title("Fit to mch")
-plt.xlabel("averge of intensity")
-plt.ylabel("mch")
-plt.errorbar(xs.mean(1).cpu().numpy(), mean_9, yerr=std_9, fmt='o', c='g', ms = 1, elinewidth=0.1,errorevery=1, label='mean of pred')  #mean of predicted values w 1std error
-plt.scatter(xs.mean(1).cpu().numpy(), ytest[:,9],     s=5, c='b', label='y test')
-plt.legend()
-
-
-
-
-
-
+plt.title("Fit to mu")
+plt.xlabel("average of PCA components")
+plt.ylabel("mu")
+#plt.scatter(np.average(xs[:,:,np.newaxis].cpu().numpy(),1), mean, c='g')
+plt.errorbar(np.average(xs[:,:,np.newaxis].cpu().numpy(),1), mean_mu, yerr=std_mu, fmt='o', c='g', ms = 1, elinewidth=0.1,errorevery=1, label='mean of pred')  #mean of predicted values w 1std error
+plt.scatter(np.average(xs[:,:,np.newaxis].cpu().numpy(),1), ytest[:,0],     s=5, c='b', label='y test')
 """
+plt.scatter(np.average(xs[:,:,np.newaxis].cpu().numpy(),1), ys[:,0,0],   s=1, c='r', label='prediction')
+plt.scatter(np.average(xs[:,:,np.newaxis].cpu().numpy(),1), ys[:,10,0],  s=1, c ='r', label='prediction')
+plt.scatter(np.average(xs[:,:,np.newaxis].cpu().numpy(),1), ys[:,20,0],  s=1, c ='r', label='prediction')
+plt.scatter(np.average(xs[:,:,np.newaxis].cpu().numpy(),1), ys[:,30,0],  s=1, c ='r', label='prediction')
+plt.scatter(np.average(xs[:,:,np.newaxis].cpu().numpy(),1), ys[:,40,0],  s=1, c ='r', label='prediction')
+"""
+plt.legend()
+
+plt.figure()
+plt.yscale('linear')
+plt.title("Fit to sigma")
+plt.xlabel("averae of PCA components")
+plt.ylabel("sigma")
+
+#plt.scatter(np.average(xs[:,:,np.newaxis].cpu().numpy(),1), mean, c='g')
+plt.errorbar(np.average(xs[:,:,np.newaxis].cpu().numpy(),1), mean_sig, yerr=std_sig, fmt='o', c='g', ms = 1, elinewidth=0.1,errorevery=1, label='mean of pred')  #mean of predicted values w 1std error
+plt.scatter(np.average(xs[:,:,np.newaxis].cpu().numpy(),1), ytest[:,1],     s=5, c='b', label='y test')
+"""
+plt.scatter(np.average(xs[:,:,np.newaxis].cpu().numpy(),1), ys[:,0, 1],   s=1, c='r', label='prediction')
+plt.scatter(np.average(xs[:,:,np.newaxis].cpu().numpy(),1), ys[:,10,1],  s=1, c ='r', label='prediction')
+plt.scatter(np.average(xs[:,:,np.newaxis].cpu().numpy(),1), ys[:,20,1],  s=1, c ='r', label='prediction')
+plt.scatter(np.average(xs[:,:,np.newaxis].cpu().numpy(),1), ys[:,30,1],  s=1, c ='r', label='prediction')
+plt.scatter(np.average(xs[:,:,np.newaxis].cpu().numpy(),1), ys[:,40,1],  s=1, c ='r', label='prediction')
+"""
+plt.legend()
+
+plt.figure()
+plt.yscale('linear')
+plt.title("Fit to amplitude")
+plt.xlabel("averge of PCA components")
+plt.ylabel("amplitude")
+#plt.scatter(np.average(xs[:,:,np.newaxis].cpu().numpy(),1), mean, c='g')
+plt.errorbar(np.average(xs[:,:,np.newaxis].cpu().numpy(),1), mean_amp, yerr=std_amp, fmt='o', c='g', ms = 1, elinewidth=0.1,errorevery=1, label='mean of pred')  #mean of predicted values w 1std error
+plt.scatter(np.average(xs[:,:,np.newaxis].cpu().numpy(),1), ytest[:,2],     s=5, c='b', label='y test')
+"""
+plt.scatter(np.average(xs[:,:,np.newaxis].cpu().numpy(),1), ys[:,0, 2],   s=1, c='r', label='prediction')
+plt.scatter(np.average(xs[:,:,np.newaxis].cpu().numpy(),1), ys[:,10,2],  s=1, c ='r', label='prediction')
+plt.scatter(np.average(xs[:,:,np.newaxis].cpu().numpy(),1), ys[:,20,2],  s=1, c ='r', label='prediction')
+plt.scatter(np.average(xs[:,:,np.newaxis].cpu().numpy(),1), ys[:,30,2],  s=1, c ='r', label='prediction')
+plt.scatter(np.average(xs[:,:,np.newaxis].cpu().numpy(),1), ys[:,40,2],  s=1, c ='r', label='prediction')
+"""
+plt.legend()
+
 
 plt.figure() 
 plt.yscale('linear') 
@@ -367,7 +295,7 @@ plt.ylabel("sig")
 plt.scatter(ytest[:,2], ytest[:,1],     s=2, c='b', label='y test') 
 plt.errorbar(mean_amp, mean_sig, xerr=std_amp, yerr=std_sig, fmt='o', c='g', ms = 1, elinewidth=0.1,errorevery=1, label='mean of pred')
 plt.legend()
-"""
+
 
 """
 #print("x",x)

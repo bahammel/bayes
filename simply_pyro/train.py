@@ -1,6 +1,6 @@
 import pyro
 import numpy as np
-from model import RegressionModel, get_pyro_model
+from model_m2 import RegressionModel, get_pyro_model
 import matplotlib.pyplot as plt
 import torch
 from data import get_dataset, seed_everything

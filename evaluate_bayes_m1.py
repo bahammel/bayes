@@ -17,7 +17,8 @@ USE_GPU = torch.cuda.is_available()
 
 #exp_id = '2019-03-11T10:02:52.595718'
 #exp_id = '2019-04-06T10:48:00.497689'
-exp_id = '2019-04-08T09:16:00.525043'
+#exp_id = '2019-04-08T09:16:00.525043'
+exp_id = '2019-04-26T09:25:23.170293'
 torch.set_default_tensor_type(
     'torch.cuda.FloatTensor' if USE_GPU else 'torch.FloatTensor'
 )

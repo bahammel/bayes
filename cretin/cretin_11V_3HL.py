@@ -51,6 +51,8 @@ EPOCHS = 40000
 
 
 hu, PC, xx, xtest_pca, xtrain, xtest, yy, ytest, X,Y = pca_data_hu.pca_data()
+np.save(f"/usr/WS1/hammel1/proj/data/cretin_pca_data.npy", [hu, PC, xx, xtest_pca, xtrain, xtest, yy, ytest, X,Y]
+
 
 x = xx.astype('float32') 
 y = yy.astype('float32') 

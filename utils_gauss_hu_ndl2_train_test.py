@@ -53,7 +53,7 @@ def gauss_data_2():
 
 def gauss_data_bay():
     hu = np.linspace(1, 10, 200)*1.0
-    num_of_cases = 50000
+    num_of_cases = 10000
 
     X = []
     Y = []
@@ -65,7 +65,7 @@ def gauss_data_bay():
         mu = 6.0*1.0
         #mu = np.random.choice(np.linspace(5.8, 6.2, 2))
         shft = np.random.choice(np.linspace(-1, 1, 50))
-        mu_train = mu*(1. + shft/5.e2) 
+        mu_train = mu*(1. + shft/1.e2) 
         mu_test = mu*(1. + shft/1.e2) 
         #mu = np.random.choice(np.linspace(4, 8, 2))
         #mu = 5.5
